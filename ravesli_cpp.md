@@ -466,3 +466,36 @@ Your color contains:
 51 of 255 blue
 0 of 255 alpha
 ```
+
+### Тест
+Есть следующий фрагмент кода:
+```c++
+int main() {
+    unsigned char option_viewed = 0x01;
+    unsigned char option_edited = 0x02;
+    unsigned char option_favorited = 0x04;
+    unsigned char option_shared = 0x08;
+    unsigned char option_deleted = 0x80;
+    
+    unsigned char myArticleFlags;
+    
+    return 0;
+}
+```
+
+№1. Добавьте строку кода, чтобы пометить статью как уже прочитанную (option_viewed).\
+`myArticleFlags |= option_viewed;`
+
+№2. Добавьте строку кода, чтобы проверить, была ли статья удалена (option_deleted).\
+`if (myArticleFlags & option_deleted) …`
+
+№3. Добавьте строку кода, чтобы открепить статью от закрепленного места (option_favorited).\
+`myArticleFlags &= ~option_favorited;`
+
+№4. Почему следующие две строки идентичны?
+```c++
+myflags &= ~(option4 | option5); // выключаем option4 и option5
+myflags &= ~option4 & ~option5; // выключаем option4 и option5
+```
+Закон Де Моргана.
+
