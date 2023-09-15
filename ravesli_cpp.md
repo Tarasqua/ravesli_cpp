@@ -1,4 +1,4 @@
-## Урок №44. Условный тернарный оператор, оператор sizeof и Запятая
+## Урок №44. Условный тернарный оператор, оператор `sizeof` и Запятая
 
 ```c++
 z = (a, b); // сначала вычисляется выражение (a, b), которое равняется значению b, а затем результат присваивается переменной z
@@ -167,7 +167,7 @@ if (value > 10 && value < 20)
 
 ## Урок №48. Побитовые операторы
 
-### Побитовый сдвиг влево (<<) и побитовый сдвиг вправо (>>)
+### Побитовый сдвиг влево (`<<`) и побитовый сдвиг вправо (`>>`)
 
 ```
 // сдвиг влева
@@ -363,7 +363,7 @@ someFunction(option10 | option32);
 Кроме того, что это читабельнее, это также эффективнее и производительнее, так\
 как включает только 2 операции (1 побитовое ИЛИ и 1 передача параметров)
 
-### Введение в std::bitset
+### Введение в `std::bitset`
 
 Для его использования необходимо подключить заголовочный файл bitset, а затем\
 определить переменную типа std::bitset, указав необходимое количество бит. Она\
@@ -735,7 +735,7 @@ int main() {
 прямой путь к проблемам и ошибкам, поэтому подобное делать не рекомендуется.\
 Многие разработчики добавляют к глобальным переменным префикс `g_`.
 
-### Ключевые слова static и extern
+### Ключевые слова `static` и `extern`
 Связь переменной определяет, относятся ли несколько упоминаний одного\
 идентификатора к одной и той же переменной или нет.
 
@@ -1524,7 +1524,7 @@ int main()
 **Правило: Избегайте использования const_cast и reinterpret_cast, если у вас нет на
 это веских причин.**
 
-### Конвертация C-style
+### Конвертация `C-style`
 ```c++
 int i1 = 11;
 int i2 = 3;
@@ -1533,7 +1533,7 @@ float x = float(i1) / i2;
 ```
 **Правило: Не используйте конвертацию C-style.**
 
-### Оператор static_cast
+### Оператор `static_cast`
 Оператор `static_cast` лучше всего использовать для конвертации одного\
 фундаментального типа данных в другой:
 ```c++
@@ -1572,3 +1572,205 @@ i = static_cast<int>(i / 3.6);
 Явное преобразование происходит, когда программист использует оператор\
 явного преобразования для конвертации значения из одного типа данных в\
 другой.
+
+## Урок №60. Введение в `std::string`
+### Тип данных string
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string name{"Kirill"};
+    std::cout << name;
+    return 0;
+}
+
+<< Kirill
+```
+
+**Ввод строк через `std::cin`:**
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+  std::cout << "Enter your full name: ";
+  std::string myName;
+  // это будет работать не так, как ожидается, поскольку извлечение 
+  // данных из потока std::cin останавливается на первом пробеле
+  std::cin >> myName; 
+  
+  std::cout << "Enter your age: ";
+  std::string myAge;
+  std::cin >> myAge;
+  
+  std::cout << "Your name is " << myName << " and your age is " << myAge;
+}
+
+<< Enter your full name: 
+>> Kirill Tarasov
+<< Enter your age: Your name is Kirill and your age is Tarasov
+```
+
+### Использование `std::getline()`
+`std::getline()` используется, чтобы извлечь полную строку из входного потока данных (вместе с пробелами).\
+Она принимает два параметра: первый — `std::cin`, второй — переменная типа `string`.
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::cout << "Enter your full name: ";
+    std::string myName;
+    std::getline(std::cin, myName); // полностью извлекаем строку в переменную myName
+
+    std::cout << "Enter your age: ";
+    std::string myAge;
+    std::getline(std::cin, myAge); // полностью извлекаем строку в переменную myAge
+    std::cout << "Your name is " << myName << " and your age is " << myAge;
+
+    return 0;
+}
+
+<< Enter your full name:
+>> Kirill Tarasiv
+<< Enter your age: 
+>> 22
+<< Your name is Kirill Tarasiv and your age is 22
+```
+
+### Использование `std::getline()` c `std::cin`
+Когда вы вводите числовое значение, поток `cin` захватывает вместе с вашим числом и\
+символ новой строки. Поэтому, когда мы ввели `2`, `cin` фактически получил `2\n`.\
+Затем он извлек значение `2` в переменную, оставляя `\n` (символ новой строки) во\
+входном потоке. Затем, когда `std::getline()` извлекает данные для `myName`, он видит\
+в потоке `\n` и думает, что мы, должно быть, ввели просто пустую строку.
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::cout << "Pick 1 or 2: ";
+    int choice;
+    std::cin >> choice;
+
+    std::cout << "Now enter your name: ";
+    std::string myName;
+    std::getline(std::cin, myName);
+
+    std::cout << "Hello, " << myName << ", you picked " << choice << '\n';
+    
+    return 0;
+}
+<< Pick 1 or 2: 
+>> 2
+<< Now enter your name: Hello, , you picked 2
+```
+
+Хорошей практикой является удалять из входного потока данных символ новой\
+строки. Это можно сделать следующим образом:
+```c++
+// 32767 вводится для пропуска определенного количества символов перед 
+// указанным разделителем, в данном случае - символом новой строки "\n"
+std::cin.ignore(32767, '\n');
+```
+
+Если мы вставим эту строку непосредственно после получения входных данных, то\
+символ новой строки будет удален из входного потока, и программа будет работать\
+должным образом:
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::cout << "Pick 1 or 2: ";
+    int choice;
+    std::cin >> choice;
+    
+    std::cin.ignore(32767, '\n'); // удаляем символ новой строки из входного потока данных
+    
+    std::cout << "Now enter your name: ";
+    std::string myName;
+    std::getline(std::cin, myName);
+
+    std::cout << "Hello, " << myName << ", you picked " << choice << '\n';
+    
+    return 0;
+}
+
+<< Pick 1 or 2: 
+>> 2
+<< Now enter your name:
+>> Kirill Tarasov
+<< Hello, Kirill Tarasov, you picked 2
+```
+
+**Правило: При вводе числовых значений не забывайте удалять символ новой\
+строки из входного потока данных с помощью `std::cin.ignore()`.**
+
+### Добавление строк
+Оператор `+` для объединения двух строк или оператор `+=` для добавления одной строки к другой.
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string x("44");
+    std::string y("12");
+    
+    std::cout << x + y << "\n"; // объединяем строки x и y (а не складываем числа)
+    x += " cats";
+    std::cout << x;
+
+    return 0;
+}
+
+<< 4412
+<< 44 cats
+```
+
+### Длина строк
+Для определения длины строки используется метод `.length()`:
+```c++
+std::string myName{"Kirill"};
+std::cout << myName.length();
+
+<< 6
+```
+
+### Тест
+Напишите программу, которая просит у пользователя ввести его имя, фамилию и\
+возраст. В результате, укажите пользователю, сколько лет он прожил на каждую\
+букву из его имени и фамилии (чтобы было проще, учитывайте также пробелы).
+
+```c++
+#include <iostream>
+#include <string>
+
+int main()
+{
+    std::cout << "Enter your full name: ";
+    std::string myName;
+    std::getline(std::cin, myName); // извлекаем целую строку из входного потока в переменную myName
+    std::cout << "Enter your age: ";
+    // переменная myAge должна быть типа int, а не типа string, чтобы мы могли проводить с ней арифметические операции
+    int myAge; 
+    std::cin >> myAge;
+    int letters = myName.length(); // вычисляем длину переменной myName (учитывая пробелы)
+    // используем оператор static_cast, чтобы изменить тип переменной myAge на double, 
+    // дабы сохранить дробную часть при целочисленном делении
+    double agePerLetter = static_cast<double>(myAge) / letters; 
+    std::cout << "You've lived " << agePerLetter << " years for each letter in your name.\n";
+    
+    return 0;
+}
+
+<< Enter your full name: 
+>> Kirill Tarasov
+<< Enter your age: 
+>> 22
+<< Youve lived 1.57143 years for each letter in your name.
+```
+
+### Урок №61. Перечисления
+
