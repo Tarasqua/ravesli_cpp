@@ -1,3 +1,61 @@
+## Урок 42. Арифметические операторы
+
+**`static_cast\<type>(expression)` для конвертации типов данных**
+```c++
+int main() {
+int x = 7;
+int y = 4;
+
+std::cout << "int / int = " << x / y << "\n";  // int / int = 1
+std::cout << "double / int = " << static_cast<double>(x) / y << "\n";  // double / int = 1.75
+std::cout << "int / double = " << x / static_cast<double>(y) << "\n";  // int / double = 1.75
+std::cout << "double / double = " << static_cast<double>(x) / static_cast<double>(y) << "\n";  // double / double = 1.75
+
+return 0;
+}
+```
+
+## Урок 43. Инкремент, декремент и побочные эффекты
+
+```c++
+// Префикс
+// значение сначала увеличивается, а затем уже вычисляется
+int x = 5;
+int y = ++x;  // x = 6 и 6 присваивается y
+```
+
+```c++
+// Постфикс
+// Компилятор создает временную копию переменной x, увеличивает оригинальный x,
+// а затем возвращает копию. Только после возврата копия x удаляется 
+int x = 5;
+int y = x++;  // x = 6, но переменной y присваивается 5
+```
+
+```c++
+int add(int x, int y){
+    return x + y;
+}
+
+int main() {
+    int x = 5;
+    std::cout << add(x, x++);  // 11
+    std::cout << add(x, ++x);  // 12
+    
+    return 0;
+}
+```
+
+```c++
+int main(){
+    int x = 1;
+    x = x++;
+    std::cout << x;  // 1
+    
+    return 0;
+}
+```
+
 ## Урок №44. Условный тернарный оператор, оператор `sizeof` и Запятая
 
 ```c++
