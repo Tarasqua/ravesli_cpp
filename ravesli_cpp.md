@@ -4151,3 +4151,526 @@ int main() {
 ```
 
 ## Урок №80. Сортировка массивов методом выбора
+Чтобы поменять два элемента местами, мы можем использовать функцию\
+`std::swap()` из заголовочного файла `utility`.
+```c++
+#include <iostream>
+#include <utility> 
+
+int main() {
+    int a = 3;
+    int b = 5;
+    std::cout << "Before swap: a = " << a << ", b = " << b << '\n';
+    std::swap(a, b); // меняем местами значения переменных a и b
+    std::cout << "After swap: a = " << a << ", b = " << b << '\n';
+    
+    return 0;
+}
+
+<< Before swap: a = 3, b = 5
+<< After swap: a = 5, b = 3
+```
+
+### Функция `std::sort()`
+```c++
+#include <iostream>
+#include <algorithm> // для std::sort()
+
+int main() {
+    const int length = 5;
+    int array[length] = {30, 50, 20, 10, 40};
+    std::sort(array, array + length);
+
+    for (int i : array)
+        std::cout << i << ' ';
+    
+    return 0;
+}
+
+<< 10 20 30 40 50 
+```
+
+## Урок №81. Многомерные массивы
+Массив массивов называется **многомерным массивом**:
+```c++
+// первый элемент - количество строк, второй - количество столбцов
+int array[2][4]; // двумерный массив
+```
+
+### Инициализация двумерных массивов
+```c++
+int array[3][5] =
+            {
+                    { 1, 2, 3, 4, 5 }, // строка №0
+                    { 6, 7, 8, 9, 10 }, // строка №1
+                    { 11, 12, 13, 14, 15 } // строка №2
+            };
+
+int array[3][5] =
+            {
+                    { 2, 4 }, // строка №0 = 2, 4, 0, 0, 0
+                    { 1, 3, 7 }, // строка №1 = 1, 3, 7, 0, 0
+                    { 8, 9, 11, 12 } // строка №2 = 8, 9, 11, 12, 0
+            };
+
+int array[][5] =  // можно не указывать только левый индекс (длину массива)
+            {
+                    { 1, 2, 3, 4, 5 },
+                    { 6, 7, 8, 9, 10 },
+                    { 11, 12, 13, 14, 15 }
+            };
+
+// многомерные массивы можно инициализировать значением 0
+// это работает только в случае, когда явно объявляется длина массива
+int array[3][5] = { 0 };
+```
+
+### Доступ к элементам в двумерном массиве
+```c++
+for (int row = 0; row < numRows; ++row) // доступ по строкам
+    for (int col = 0; col < numCols; ++col) // доступ к каждому элементу в строке
+        std::cout << array[row][col];
+```
+
+https://stackoverflow.com/questions/15927033/what-is-the-correct-way-of-using-c11s-range-based-for
+```c++
+for (auto & row : array)
+        for (int col : row)
+            std::cout << col << ' ';
+```
+
+### Многомерные массивы более двух измерений
+```c++
+int array[4][3][2]; // трехмерный массив
+std::cout << array[3][2][1];
+```
+
+## Урок №82. Строки `C-style`
+**Современный C++ поддерживает два разных типа строк:**
+* `std::string` (как часть Стандартной библиотеки С++);
+* **строки `C-style`** (изначально унаследованные от языка Cи).
+
+### Строки `C-style`
+**Строка `C-style`** — это простой массив символов, который использует нуль-\
+терминатор. **Нуль-терминатор** — это специальный символ (ASCII-код которого\
+равен 0), используемый для обозначения конца строки. Строка C-style еще\
+называется "**нуль-терминированной строкой**".
+
+```c++
+char mystring[] = "string";
+```
+Хотя `string` имеет только 6 букв, C++ автоматически добавляет нуль-терминатор в\
+конец строки (нам не нужно добавлять его вручную). Следовательно, длина массива\
+`mystring` на самом деле равна 7.
+
+```c++
+#include <iostream>
+
+int main() {
+    char mystring[] = "string";
+    // эквивалентно sizeof(mystring) / sizeof(mystring[0])
+    std::cout << mystring << " has " << sizeof(mystring) << " characters.\n";
+
+    for (char index : mystring)  // эквивалентно for (int index = 0; index < sizeof(mystring); ++index)
+        std::cout << static_cast<int>(index) << " ";
+
+    return 0;
+}
+
+<< string has 7 characters.
+<< 115 116 114 105 110 103 0 
+```
+Нуль в конце является ASCII-кодом нуль-терминатора, который был добавлен в конец строки.
+
+```c++
+char mystring[] = "string"; // ок
+mystring = "cat"; // не ок!
+
+// эквивалентно
+int array[] = { 4, 6, 8, 2 }; // ок
+array = 7; // что это значит?
+```
+
+```c++
+// так как строки C-style - массивы, то:
+char mystring[] = "string";
+mystring[1] = 'p';
+std::cout << mystring;
+
+<< spring
+```
+
+### Строки `C-style` и `std::cin`
+Вызов `cin.getline()` будет принимать до 254 символов в массив name (оставляя\
+место для нуль-терминатора!). Любые лишние символы будут проигнорированы.\
+Таким образом, мы можем гарантировать, что массив не будет переполнен.
+```c++
+#include <iostream>
+
+int main() {
+    char name[255]; // объявляем достаточно большой массив (для хранения 255 символов)
+    std::cout << "Enter your name: ";
+    std::cin.getline(name, 255);
+    std::cout << "You entered: " << name << '\n';
+
+    return 0;
+}
+```
+
+### Управление строками `C-style`
+**Функция `strcpy_s()`** позволяет копировать содержимое одной строки в другую.\
+Чаще всего это используется для присваивания значений строке:
+```c++
+#include <iostream>
+#include <cstring>
+
+int main() {
+    char text[] = "Print this!";
+    char dest[50]; // длина массива должна быть не меньше длины копируемой строки
+    strcpy_s(dest, text); // в dest - text
+    std::cout << dest; // выводим "Print this!"
+    
+    return 0;
+}
+```
+
+Еще одной полезной функцией управления строками является **функция `strlen()`**,\
+которая возвращает длину строки `C-style` (без учета нуль-терминатора):
+```c++
+#include <iostream>
+#include <cstring>
+
+int main() {
+    char name[15] = "Max"; // используется только 4 символа (3 буквы + нуль-терминатор)
+    std::cout << "My name is " << name << '\n';
+    std::cout << name << " has " << strlen(name) << " letters.\n";
+    std::cout << name << " has " << sizeof(name) << " characters in the array.\n";
+    
+    return 0;
+}
+
+<< My name is Max
+<< Max has 3 letters.
+<< Max has 15 characters in the array.
+```
+
+Вот еще полезные функции для управления строками C-style:
+* **функция `strcat()`** — добавляет одну строку к другой (опасно);
+* **функция `strncat()`** — добавляет одну строку к другой (с проверкой размера\
+  места назначения);
+* **функция `strcmp()`** — сравнивает две строки (возвращает 0, если они равны);
+* **функция `strncmp()`** — сравнивает две строки до определенного количества\
+  символов (возвращает 0, если до указанного символа не было различий).
+
+### Стоит ли использовать строки `C-style`?
+**Правило: Используйте `std::string` вместо строк `C-style`.**
+
+## Урок №83. Введение в класс `std::string_view`
+### Введение в класс `std::string_view`
+В стандарте С++17 вводится еще один способ использования строк — с помощью\
+класса `std::string_view`, который находится в заголовочном файле `string_view`.
+
+В отличие от объектов класса `std::string`, которые хранят свою собственную копию\
+строки, класс `std::string_view` обеспечивает **представление** (англ. "**view**") для\
+заданной строки, которая может быть определена где-нибудь в другом месте.
+
+```c++
+#include <iostream>
+#include <string_view>
+
+int main() {
+    std::string_view text{ "hello" }; // представление для строки "hello", которое хранится в бинарном виде
+    std::string_view str{ text }; // представление этой же строки - "hello"
+    std::string_view more{ str }; // представление этой же строки - "hello"
+    std::cout << text << ' ' << str << ' ' << more << '\n';
+    
+    return 0;
+}
+
+<< hello hello hello
+```
+**При таком подходе, у нас не будут созданы лишние копии строки `hello`**
+
+```c++
+#include <iostream>
+#include <string_view>
+
+int main() {
+    std::string_view str{ "Trains are fast!" };
+    std::cout << str.length() << '\n'; // 16
+    std::cout << str.substr(0, str.find(' ')) << '\n'; // Trains
+    std::cout << (str == "Trains are fast!") << '\n'; // 1
+    
+    // Начиная с C++20
+    std::cout << str.starts_with("Boats") << '\n'; // 0
+    std::cout << str.ends_with("fast!") << '\n'; // 1
+    
+    std::cout << str << '\n'; // Trains are fast!
+    
+    return 0;
+}
+```
+
+Т.к. объект класса `std::string_view` не создает копии строки, то, изменив исходную\
+строку, мы, тем самым, повлияем и на её представление в связанном с ней\
+объектом `std::string_view`:
+```c++
+#include <iostream>
+#include <string_view>
+
+int main() {
+    char arr[]{"Gold"};
+    std::string_view str{arr};
+
+    std::cout << str << '\n'; // Gold
+    // Изменяем 'd' на 'f' в arr
+    arr[3] = 'f';
+    std::cout << str << '\n'; // Golf
+
+    return 0;
+}
+```
+
+**Совет:** Используйте `std::string_view` вместо строк `C-style`.\ 
+Для строк, которые не планируете изменять в дальнейшем, предпочтительнее\
+использовать класс `std::string_view` вместо `std::string`.
+
+### Функции, модифицирующие представление
+Можно изменять представление строки без изменения исходной строки.\
+Для этого используются следующие функции:
+* `remove_prefix()` — удаляет символы из левой части представления;
+* `remove_suffix()` — удаляет символы из правой части представления.
+```c++
+#include <iostream>
+#include <string_view>
+
+int main() {
+    std::string_view str{ "Peach" };
+    std::cout << str << '\n'; // Peach
+
+    // Игнорируем первый символ
+    str.remove_prefix(1);
+    std::cout << str << '\n'; // each
+
+    // Игнорируем последние 2 символа
+    str.remove_suffix(2); 
+    std::cout << str << '\n';  // ea
+
+    return 0;
+}
+```
+**Важно:** Изменив однажды область видимости, вы уже не сможете вернуться\
+к первоначальным значениям.
+
+### `std::string_view` и обычные строки
+В отличие от строк `C-Style`, объекты классов `std::string` и `std::string_view` **не\
+используют нулевой символ (нуль-терминатор)** в качестве метки для обозначения\
+конца строки. Данные объекты знают, где заканчивается строка, т.к. отслеживают её длину:
+```c++
+#include <iostream>
+#include <iterator> // для функции std::size()
+#include <string_view>
+
+int main() {
+    // Нет нуль-терминатора
+    char vowels[]{ 'a', 'e', 'i', 'o', 'u' };
+
+    // Массив vowels не является нуль-терминированным. Мы должны передавать длину вручную.
+    // Поскольку vowels является массивом, то мы можем использовать функцию std::size(), чтобы получить его длину
+    std::string_view str{ vowels, std::size(vowels) };
+    
+    // Или просто
+    std::string_view str{ vowels };
+
+    std::cout << str << '\n'; // это безопасно, так как std::cout знает, как выводить std::string_view
+
+    return 0;
+}
+```
+
+### Проблемы владения и доступа
+Поскольку `std::string_view` является всего лишь представлением строки, его время\
+жизни не зависит от времени жизни строки, которую он представляет. Если\
+отображаемая строка выйдет за пределы области видимости, то s`td::string_view`\
+больше не сможет её отображать и при попытке доступа к ней мы получим\
+неопределенные результаты:
+```c++
+#include <iostream>
+#include <string>
+#include <string_view>
+
+std::string_view askForName() {
+    std::cout << "What's your name?\n";
+    // Используем std::string, поскольку std::cin будет изменять строку
+    std::string str{};
+    std::cin >> str;
+    // Мы переключаемся на std::string_view только в демонстрационных целях.
+    // Если вы уже имеете std::string, то нет необходимости переключаться на std::string_view
+    std::string_view view{ str };
+    std::cout << "Hello " << view << '\n';
+    
+    return view;
+} // str уничтожается и, таким образом, уничтожается и строка, созданная str
+
+int main() {
+    std::string_view view{ askForName() };
+    // view пытается обратиться к строке, которой уже не существует
+    std::cout << "Your name is " << view << '\n'; // неопределенное поведение
+
+    return 0;
+}
+
+<< Whats your name?
+>> Kirill
+<< Hello Kirill
+<< Your name is  0#�Y
+```
+
+**Предупреждение:** Следите за тем, чтобы исходная строка, на которую ссылается\
+объект std::string_view, не выходила за пределы области видимости и не\
+изменялась до тех пор, пока используется ссылающийся на нее объект\
+`std::string_view`.
+
+### Конвертация `std::string_view` в `std::string`
+Объекты класса `std::string_view` не конвертируются неявным образом в объекты\
+класса `std::string`, но конвертируются при явном преобразовании:
+```c++
+#include <iostream>
+#include <string>
+#include <string_view>
+
+void print(std::string s) {
+    std::cout << s << '\n';
+}
+
+int main() {
+    std::string_view sv{ "balloon" };
+    sv.remove_suffix(3); // удаляем 3 элемента справа
+    // print(sv); // ошибка компиляции: неявная конвертация запрещена
+    std::string str{ sv }; // явное преобразование
+    print(str); // ок
+    print(static_cast<std::string>(sv)); // ок
+
+    return 0;
+}
+
+<< ball
+<< ball
+```
+
+### Конвертация `std::string_view` в строку `C-style`
+Некоторые старые функции (такие как `strlen()`) работают только со строками `C-style`.\
+Для того чтобы преобразовать объект класса `std::string_view` в строку `C-style`,\
+мы сначала должны конвертировать его в объект класса `std::string`:
+```c++
+#include <cstring>
+#include <iostream>
+#include <string>
+#include <string_view>
+
+int main() {
+    std::string_view sv{ "balloon" };
+    sv.remove_suffix(3);
+    // Создание объекта std::string из объекта std::string_view
+    std::string str{ sv };
+    // Получаем строку C-style с нуль-терминатором
+    auto szNullTerminated{ str.c_str() };
+    // Передаем строку с нуль-терминатором в функцию, которую мы хотим использовать
+    std::cout << str << " has " << std::strlen(szNullTerminated) << " letter(s)\n";
+
+    return 0;
+}
+
+<< ball has 4 letter(s)
+```
+Однако стоит учитывать, что создание объекта класса `std::string` всякий раз, когда\
+мы хотим преобразовать объект `std::string_view `в строку `C-style`, является\
+дорогостоящей операцией, поэтому мы должны по возможности избегать\
+подобных ситуаций.
+
+### Функция `data()`
+Доступ к исходной строке объекта `std::string_view` можно получить при помощи
+**функции `data()`**, которая возвращает строку `C-style`. Но это следует\
+использовать только тогда, когда объект `std::string_view` не был изменен (например,\
+при помощи функций `remove_prefix()` или `remove_suffix()`) и связанная с\
+ним строка имеет нуль-терминатор (так как это строка `C-style`).\
+
+В следующем примере функция `std::strlen()` ничего не знает о `std::string_view`,\
+поэтому мы передаем ей функцию `str.data()`:
+```c++
+#include <cstring> // для функции std::strlen()
+#include <iostream>
+#include <string_view>
+
+int main() {
+    std::string_view str{ "balloon" };
+    std::cout << str << '\n';
+    // Для простоты мы воспользуемся функцией std::strlen(). Вместо нее можно
+    // было бы использовать любую другую функцию, которая работает со строкой с нуль-терминатором в конце.
+    // Здесь мы можем использовать функцию data(), так как мы не изменяли представление и строка имеет нуль-терминатор
+    std::cout << std::strlen(str.data()) << '\n';
+
+    return 0;
+}
+
+<< balloon
+<< 7
+```
+
+В следующем примере показано, что происходит, когда мы обращаемся к функции\
+`data()` после изменения представления строки:
+```c++
+#include <cstring> // для функции std::strlen()
+#include <iostream>
+#include <string_view>
+
+int main() {
+    std::string_view str{ "balloon" };
+    // Удаляем символ "b"
+    str.remove_prefix(1);
+    // Удаляем часть "oon"
+    str.remove_suffix(3);
+    // Помните, что предыдущие 2 команды не изменяют исходную строку, они
+    // работают лишь с её представлением
+    std::cout << str << " has " << std::strlen(str.data()) << " letter(s)\n";
+    std::cout << "str.data() is " << str.data() << '\n';
+    std::cout << "str is " << str << '\n';
+
+    return 0;
+}
+
+<< all has 6 letter(s)
+<< str.data() is alloon
+<< str is all
+```
+`std::strlen` и `std::cout` продолжают считывать символы из исходной строки до тех пор,\
+пока не встретят нуль-терминатор, который находится в конце строки `baloon`.
+
+**Предупреждение:** Используйте `std::string_view::data()` только в том случае, если\
+представление `std::string_view` не было изменено и отображаемая строка\
+содержит завершающий нулевой символ (нуль-терминатор). Использование\
+функции `std::string_view::data()` со строкой без нуль-терминатора чревато\
+возникновением ошибок.
+
+### Нюансы `std::string_view`
+```c++
+std::string s{ "hello" };
+std::string_view v{ "world" };
+
+// Не работает
+std::cout << (s + v) << '\n';
+std::cout << (v + s) << '\n';
+
+// Потенциально небезопасно или не то, что мы хотим получить,
+// поскольку мы пытаемся использовать объект std::string_view в качестве строки C-style
+std::cout << (s + v.data()) << '\n'; // helloworld
+std::cout << (v.data() + s) << '\n'; // worldhello
+
+// Приемлемо, т.к. нам нужно создать новый объект std::string, но некрасиво и нерационально
+std::cout << (s + std::string{ v }) << '\n'; // helloworld
+std::cout << (std::string{ v } + s) << '\n'; // worldhello
+std::cout << (s + static_cast<std::string>(v)) << '\n'; // helloworld
+std::cout << (static_cast<std::string>(v) + s) << '\n'; // worldhello
+```
+
+## Урок №84. Указатели
