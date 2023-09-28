@@ -905,7 +905,7 @@ private:
     std::uint8_t m_blue;
     std::uint8_t m_alpha;
 public:
-    explicit RGBA(std::uint8_t red = 0, std::uint8_t green = 0, std::uint8_t blue = 0,
+    RGBA(std::uint8_t red = 0, std::uint8_t green = 0, std::uint8_t blue = 0,
          std::uint8_t alpha = 255) :
             m_red(red), m_green(green), m_blue(blue), m_alpha(alpha) {
     }
@@ -1409,3 +1409,883 @@ int main() {
   класса.
 
 ## Урок №131. Классы и `const`
+### Константные объекты классов
+```c++
+const Date date1; // инициализация через конструктор по умолчанию
+const Date date2(12, 11, 2018); // инициализация через конструктор с параметрами
+const Date date3 { 12, 11, 2018 }; // инициализация через конструктор с параметрами в C++11
+```
+
+```c++
+#include <iostream>
+
+class Anything {
+public:
+    int m_value;
+
+    Anything() : m_value(0) {}
+
+    void setValue(int value) { m_value = value; }
+
+    int getValue() const { return m_value; }
+};
+
+int main() {
+    const Anything anything; // вызываем конструктор по умолчанию
+    anything.getValue() // разрешается
+    anything.m_value = 7; // ошибка компиляции: нарушение const
+    anything.setValue(7); // ошибка компиляции: нарушение const
+    
+    return 0;
+}
+```
+
+### Константные методы классов
+**Константный метод** — это метод, который гарантирует, что не будет изменять\
+объект или вызывать неконстантные методы класса (поскольку они могут изменить объект).
+```c++
+int getValue() const { return m_value; } // ключевое слово const
+// находится после списка параметров, но перед телом функции
+```
+
+```c++
+class Anything {
+    int m_value;
+public:
+    ...
+    int getValue() const; // const здесь - в прототипе функции
+};
+
+int Anything::getValue() const { // и здесь - в определении функции
+    return m_value;
+}
+```
+
+Кроме того, любой константный метод, который пытается изменить переменную-\
+член или вызвать неконстантный метод класса, также приведет к ошибке\
+компиляции, например:
+```c++
+class Anything {
+    int m_value;
+public:
+    ...
+    void resetValue() const { m_value = 0; } // ошибка компиляции, константные
+    // методы не могут изменять переменные-члены класса
+};
+```
+
+**Конструкторы не могут быть константными, так как они должны иметь возможность\
+инициализировать переменные-члены класса, а константный конструктор этого не\
+может сделать.**
+
+**Правило: Делайте все ваши методы, которые не изменяют данные объекта\
+класса, константными.**
+
+### Константные ссылки и классы
+```c++
+#include <iostream>
+
+class Date {
+private:
+    int m_day;
+    int m_month;
+    int m_year;
+public:
+    Date(int day, int month, int year) {
+        setDate(day, month, year);
+    }
+    // Метод setDate() не может быть const, так как изменяет значения
+    // переменных-членов
+    void setDate(int day, int month, int year) {
+        m_day = day;
+        m_month = month;
+        m_year = year;
+    }
+    // Все следующие геттеры могут быть const
+    int getDay() const { return m_day; }
+    int getMonth() const { return m_month; }
+    int getYear() const { return m_year; }
+};
+
+void printDate(const Date &date) {
+    std::cout << date.getDay() << "." << date.getMonth() << "." <<
+              date.getYear() << '\n';
+}
+
+int main() {
+    Date date{12, 11, 2018};
+    printDate(date); // 12.11.2018
+
+    return 0;
+}
+```
+
+### Перегрузка константных и неконстантных функций
+```c++
+#include <iostream>
+#include <string>
+
+class Anything {
+private:
+    std::string m_value;
+public:
+    Anything(const std::string &value = "") { m_value = value; }
+
+    const std::string &getValue() const { return m_value; } // getValue() для константных объектов
+    std::string &getValue() { return m_value; } // getValue() для неконстантных объектов
+    // может быть использована как для чтения, так и для записи
+};
+
+int main() {
+    Anything anything;
+    anything.getValue() = "Hello!"; // вызывается неконстантный getValue()
+    const Anything anything2;
+    anything2.getValue(); // вызывается константный getValue()
+
+    std::cout << anything.getValue(); // Hello!
+
+    return 0;
+}
+```
+
+### Резюме
+**Любой метод, который не изменяет данные объекта класса, должен быть `const`**
+
+## Урок №132. Статические переменные-члены класса
+```c++
+#include <iostream>
+
+class Anything {
+public:
+    static int s_value; // объявляем статическую переменную-член
+};
+
+int Anything::s_value = 3; // определяем статическую переменную-член
+
+int main() {
+    Anything first;
+    Anything second;
+    first.s_value = 4; // идентично Anything::s_value = 4;
+    
+    std::cout << first.s_value << '\n'; // 4 
+    std::cout << second.s_value << '\n'; // 4
+
+    return 0;
+}
+```
+
+### Статические члены не связаны с объектами класса
+```c++
+#include <iostream>
+
+class Anything {
+public:
+    static int s_value; // объявляем статическую переменную-член
+};
+
+int Anything::s_value = 3; // определяем статическую переменную-член
+
+int main() {
+    // Примечание: Мы не создаем здесь никаких объектов класса Anything
+    
+    Anything::s_value = 4;
+    std::cout << Anything::s_value << '\n'; // 4
+
+    return 0;
+}
+```
+
+### Определение и инициализация статических переменных-членов класса
+Когда мы объявляем статическую переменную-член внутри тела класса, то мы\
+сообщаем компилятору о существовании статической переменной-члене, но не о её\
+определении (аналогией является предварительное объявление). Поскольку\
+статические переменные-члены не являются частью отдельных объектов класса\
+(они обрабатываются аналогично глобальным переменным и инициализируются\
+при запуске программы), то вы должны явно определить статический член вне тела\
+класса — в глобальной области видимости.
+
+В программе выше:
+```c++
+int Anything::s_value = 3; // определяем статическую переменную-член
+```
+
+**Если инициализатор не предоставлен, то C++ инициализирует `s_value`\
+значением 0. А также, определение статического члена не подпадает под действия\
+спецификаторов доступа: вы можете определить и инициализировать `s_value`,\
+даже если он будет `private` (или `protected`).**
+
+### Инициализация статических переменных-членов внутри тела класса
+Если статический член является константным интегральным типом (к которому\
+относятся и `char`, и `bool`) или константным перечислением, то статический член\
+может быть инициализирован внутри тела класса:
+```c++
+class Anything {
+public:
+    static const int s_value = 5; // статическую константную переменную типа 
+    // int можно объявить и инициализировать напрямую
+};
+```
+
+Начиная с C++11 статические члены `constexpr` любого типа данных, поддерживающие\ 
+инициализацию `constexpr`, могут быть инициализированы внутри тела класса:
+```c++
+#include <array>
+
+class Anything {
+public:
+    static constexpr double s_value = 3.4; // хорошо
+    static constexpr std::array<int, 3> s_array = { 3, 4, 5 }; // это работает
+    // даже с классами, которые поддерживают инициализацию constexpr
+};
+```
+
+### Использование статических переменных-членов класса
+Зачем использовать статические переменные-члены внутри классов? Для\
+присваивания уникального идентификатора каждому объекту класса (как вариант),\
+что гарантирует уникальность идентификаторов для каждого созданного объекта\
+класса Anything:
+```c++
+#include <iostream>
+
+class Anything {
+private:
+    static int s_idGenerator;
+    int m_id;
+public:
+    Anything() { m_id = s_idGenerator++; } // увеличиваем значение идентификатора для следующего объекта
+
+    int getID() const { return m_id; }
+};
+
+// Мы определяем и инициализируем s_idGenerator несмотря на то, что он объявлен как private.
+// Это нормально, поскольку определение не подпадает под действия спецификаторов доступа
+int Anything::s_idGenerator = 1; // начинаем наш ID-генератор со значения 1
+
+int main() {
+    Anything first;
+    Anything second;
+    Anything third;
+
+    std::cout << first.getID() << '\n'; // 1
+    std::cout << second.getID() << '\n'; // 2
+    std::cout << third.getID() << '\n'; // 3
+
+    return 0;
+}
+```
+
+## Урок №133. Статические методы класса
+Подобно статическим переменным-членам, **статические методы** не привязаны к\
+какому-либо одному объекту класса:
+```c++
+#include <iostream>
+
+class Anything {
+private:
+    static int s_value;
+public:
+    static int &getValue() { return s_value; } // статический метод
+};
+
+int Anything::s_value = 3; // определение статической переменной-члена класса
+
+int main(){
+    std::cout << Anything::getValue() << '\n'; // 3
+}
+```
+
+### Статические методы не имеют указателя `*this
+* Поскольку статические методы не привязаны к объекту, то они не имеют\
+  скрытого указателя `*this`. Здесь есть смысл, так как указатель `*this` всегда\
+  указывает на объект, с которым работает метод. Статические методы могут не\
+  работать через объект, поэтому и указатель `*this` не нужен.
+* Статические методы могут напрямую обращаться к другим статическим\
+  членам (переменным или функциям), но не могут напрямую обращаться к\
+  нестатическим членам. Это связано с тем, что нестатические члены принадлежат\
+  объекту класса, а статические методы — нет.
+
+### Еще один пример
+Статические методы можно определять вне тела класса:
+```c++
+#include <iostream>
+
+class IDGenerator {
+private:
+    static int s_nextID; // объявление статической переменной-члена
+public:
+    static int getNextID(); // объявление статического метода
+};
+
+// Определение статической переменной-члена находится вне тела
+// класса. Обратите внимание, что мы не используем здесь ключевое слово static.
+// Начинаем генерировать ID с 1
+int IDGenerator::s_nextID = 1;
+
+// Определение статического метода находится вне тела класса.
+// Обратите внимание, что мы не используем здесь ключевое слово static
+int IDGenerator::getNextID() { return s_nextID++; }
+
+int main() {
+    for (int count = 0; count < 4; ++count)
+        std::cout << "The next ID is: " << IDGenerator::getNextID() << '\n'; // 1 2 3 4
+
+    return 0;
+}
+```
+**Поскольку все переменные и функции этого класса являются статическими,\
+то нам не нужно создавать объект этого класса для работы с ним.**
+
+### C++ не поддерживает статические конструкторы
+Если для инициализации вашей статической переменной-члена требуется\
+выполнить код (например, цикл), то есть несколько разных способов это сделать.\
+Следующий способ является лучшим из них:
+```c++
+#include <iostream>
+#include <vector>
+
+class Something {
+private:
+    static std::vector<char> s_mychars;
+public:
+    class _nested { // определяем вложенный класс с именем _nested (можно сделать private ->)
+    public:
+        _nested() { // конструктор _nested() инициализирует нашу статическую переменную-член
+            s_mychars.push_back('o');
+            s_mychars.push_back('a');
+            s_mychars.push_back('u');
+            s_mychars.push_back('i');
+            s_mychars.push_back('e');
+        }
+    };
+
+    // Статический метод для вывода s_mychars 
+    // (-> а этот - оставить public и тогда _nested не будет виден извне, но все будет ворк)
+    static void getSomething() {
+        for (auto const &element: s_mychars)
+            std::cout << element << ' ';
+    }
+
+private:
+    static _nested s_initializer; // используем статический объект класса
+    // _nested для гарантии того, что конструктор _nested() выполнится
+};
+
+std::vector<char> Something::s_mychars; // определяем нашу статическую переменную-член
+Something::_nested Something::s_initializer; // определяем наш статический
+// s_initializer, который вызовет конструктор _nested() для инициализации s_mychars
+
+int main() {
+    Something::getSomething(); // o a u i e 
+    return 0;
+}
+```
+При определении статического члена `s_initializer` вызовется конструктор по\
+умолчанию `_nested()` (так как `s_initializer` является объектом класса `_nested`).\
+Мы можем использовать этот конструктор для инициализации любых статических\
+переменных-членов класса `Something`. Самое крутое здесь — это то, что весь код\
+инициализации скрыт внутри исходного класса со статическим членом!
+
+### Резюме
+Статические методы могут использоваться для работы со статическими\
+переменными-членами класса. Для работы с ними не требуется создавать объекты\
+класса.
+
+Классы могут быть «чисто статические» (со всеми статическими переменными-\
+членами и статическими методами). Однако, такие классы, по сути, эквивалентны\
+объявлению функций и переменных в глобальной области видимости, и этого\
+следует избегать, если у вас нет на это веских причин.
+
+## Урок №134. Дружественные функции и классы
+### Дружественные функции
+**Дружественная функция** — это функция, которая имеет доступ к закрытым членам\
+класса, как если бы она сама была членом этого класса.\
+Для объявления дружественной функции используется **ключевое слово `friend`** перед\
+прототипом функции, которую вы хотите сделать дружественной классу (может быть как\
+в public-, так и в private-зоне).
+```c++
+class Anything {
+private:
+    int m_value;
+public:
+    Anything() { m_value = 0; }
+
+    void add(int value) { m_value += value; }
+
+    // Делаем функцию reset() дружественной классу Anything
+    friend void reset(Anything &anything);
+};
+
+// Функция reset() теперь является другом класса Anything
+void reset(Anything &anything) { // обязательна передача объекта класса в функцию
+    // И мы имеем доступ к закрытым членам объектов класса Anything
+    anything.m_value = 0;
+}
+
+int main() {
+    Anything one;
+    one.add(4); // добавляем 4 к m_value
+    reset(one); // сбрасываем m_value в 0
+
+    return 0;
+}
+```
+
+Ниже мы объявили функцию `isEqual()` дружественной классу `Something`. Функция\
+`isEqual()` принимает в качестве параметров два объекта класса `Something`. Поскольку\
+`isEqual()` является другом класса Something, то функция имеет доступ ко всем\
+закрытым членам объектов класса `Something`. Функция` isEqual()` сравнивает\
+значения переменных-членов двух объектов и возвращает `true`, если они равны.
+```c++
+class Something {
+private:
+    int m_value;
+public:
+    Something(int value) { m_value = value; }
+
+    friend bool isEqual(const Something &value1, const Something &value2);
+};
+
+bool isEqual(const Something &value1, const Something &value2) {
+    return (value1.m_value == value2.m_value);
+}
+```
+
+### Дружественные функции и несколько классов
+Функция может быть другом сразу для нескольких классов, например:
+```c++
+#include <iostream>
+
+class Humidity; // прототип класса
+
+class Temperature {
+private:
+    int m_temp;
+public:
+    Temperature(int temp = 0) : m_temp{temp} {}
+
+    friend void outWeather(const Temperature &temperature, const Humidity &humidity);
+};
+
+class Humidity {
+private:
+    int m_humidity;
+public:
+    Humidity(int humidity = 0) : m_humidity{humidity} {}
+
+    friend void outWeather(const Temperature &temperature, const Humidity &humidity);
+};
+
+void outWeather(const Temperature &temperature, const Humidity &humidity) {
+    std::cout << "The temperature is " << temperature.m_temp <<
+              " and the humidity is " << humidity.m_humidity << '\n';
+}
+
+int main() {
+    Temperature temp(15);
+    Humidity hum(11);
+
+    outWeather(temp, hum); // The temperature is 15 and the humidity is 11
+
+    return 0;
+}
+```
+
+### Дружественные классы
+Один класс может быть дружественным другому классу. Это откроет всем членам\
+первого класса доступ к закрытым членам второго класса, например:
+```c++
+#include <iostream>
+
+class Values {
+private:
+    int m_intValue;
+    double m_dValue;
+public:
+    Values(int intValue, double dValue) : m_intValue{intValue}, m_dValue{dValue} {}
+
+    // Делаем класс Display другом класса Values
+    friend class Display;
+};
+
+class Display {
+private:
+    bool m_displayIntFirst;
+public:
+    Display(bool displayIntFirst) : m_displayIntFirst{displayIntFirst} {}
+
+    void displayItem(Values &value) {
+        if (m_displayIntFirst)
+            std::cout << value.m_intValue << " " << value.m_dValue << '\n';
+        else // или сначала выводим double
+            std::cout << value.m_dValue << " " << value.m_intValue << '\n';
+    }
+};
+
+int main() {
+    Values value(7, 8.4);
+    Display display(false);
+    display.displayItem(value); // 8.4 7
+    return 0;
+}
+```
+
+**Примечания о дружественных классах:**
+* Во-первых, даже несмотря на то, что `Display` является другом `Values`, `Display` не\
+  имеет прямой доступ к указателю `*this` объектов `Values`.
+* Во-вторых, даже если `Display` является другом `Values`, это не означает, что\
+  Values также является другом `Display`. Если вы хотите сделать оба класса\
+  дружественными, то каждый из них должен указать в качестве друга\
+  противоположный класс. Наконец, если класс `A` является другом `B`, а `B`\
+  является другом `C`, то это не означает, что `A` является другом `C`.
+
+### Дружественные методы
+Вместо того, чтобы делать дружественным целый класс, мы можем сделать\
+дружественными только определенные методы класса:
+```c++
+#include <iostream>
+
+class Values; // предварительное объявление класса Display
+
+class Display {
+private:
+    bool m_displayIntFirst;
+public:
+    Display(bool displayIntFirst) : m_displayIntFirst{displayIntFirst} {}
+
+    void displayItem(Values &value) const; // предварительное объявление, приведенное выше, требуется для этой строки
+};
+
+class Values { // полное определение класса Values
+private:
+    int m_intValue;
+    double m_dValue;
+public:
+    Values(int intValue, double dValue) : m_intValue{intValue}, m_dValue{dValue} {}
+
+    // // Делаем метод Display::displayItem() другом класса Values
+    friend void Display::displayItem(Values& value) const;
+};
+
+// Теперь мы можем определить метод Display::displayItem(), которому
+// требуется увидеть полное определение класса Values
+void Display::displayItem(Values &value) const {
+    if (m_displayIntFirst)
+        std::cout << value.m_intValue << " " << value.m_dValue << '\n';
+    else // или сначала выводим double
+        std::cout << value.m_dValue << " " << value.m_intValue << '\n';
+}
+
+int main() {
+    Values value(7, 8.4);
+    Display display(false);
+    display.displayItem(value); // 8.4 7
+    return 0;
+}
+```
+
+Лучшим решением было бы поместить каждое определение класса в отдельный заголовочный\
+файл с определениями методов в соответствующих файлах .cpp. Таким образом, все\
+определения классов стали бы видны сразу во всех файлах .cpp, и никакого "танца"\
+с перемещениями не понадобилось бы.
+
+### Резюме
+Дружественная функция/класс — это функция/класс, которая имеет доступ к\
+закрытым членам другого класса, как если бы она сама была членом этого класса.\
+Это позволяет функции/классу работать в тесном контакте с другим классом, не\
+заставляя другой класс делать открытыми свои закрытые члены.
+
+### Тест
+**a):**
+```c++
+#include <iostream>
+
+class Vector3D {
+private:
+    double m_x, m_y, m_z;
+public:
+    Vector3D(double x = 0.0, double y = 0.0, double z = 0.0)
+            : m_x(x), m_y(y), m_z(z) {
+    }
+
+    void print() {
+        std::cout << "Vector(" << m_x << " , " << m_y << " , " << m_z << ")\n";
+    }
+
+    friend class Point3D; // Point3D теперь является другом класса Vector3D
+};
+
+class Point3D {
+private:
+    double m_x, m_y, m_z;
+public:
+    Point3D(double x = 0.0, double y = 0.0, double z = 0.0)
+            : m_x(x), m_y(y), m_z(z) {
+    }
+
+    void print() {
+        std::cout << "Point(" << m_x << " , " << m_y << " , " << m_z << ")\n";
+    }
+
+    void moveByVector(const Vector3D &v) {
+        m_x += v.m_x;
+        m_y += v.m_y;
+        m_z += v.m_z;
+    }
+};
+
+int main() {
+    Point3D p(3.0, 4.0, 5.0);
+    Vector3D v(3.0, 3.0, -2.0);
+    p.print(); // Point(3 , 4 , 5)
+    p.moveByVector(v);
+    p.print(); // Point(6 , 7 , 3)
+    return 0;
+}
+```
+
+**b):**
+```c++
+#include <iostream>
+
+class Vector3D; // сначала говорим компилятору, что класс с именем Vector3D существует
+
+class Point3D {
+private:
+    double m_x, m_y, m_z;
+public:
+    Point3D(double x = 0.0, double y = 0.0, double z = 0.0)
+            : m_x(x), m_y(y), m_z(z) {
+    }
+
+    void print() const {
+        std::cout << "Point(" << m_x << " , " << m_y << " , " << m_z << ")\n";
+    }
+
+    void moveByVector(const Vector3D &v); // чтобы мы могли использовать Vector3D здесь
+    // Примечание: Мы не можем определить эту функцию здесь, так как
+    // Vector3D еще не был определен (компилятор увидит только его предварительное объявление)
+};
+
+class Vector3D {
+private:
+    double m_x, m_y, m_z;
+public:
+    Vector3D(double x = 0.0, double y = 0.0, double z = 0.0)
+            : m_x(x), m_y(y), m_z(z) {
+    }
+
+    void print() const {
+        std::cout << "Vector(" << m_x << " , " << m_y << " , " << m_z << ")\n";
+    }
+
+    friend void Point3D::moveByVector(const Vector3D &v); // Point3D::moveByVector
+    // () теперь является другом класса Vector3D
+};
+
+// Теперь, когда Vector3D был определен, мы можем определить функцию
+// Point3D::moveByVector()
+void Point3D::moveByVector(const Vector3D &v) {
+    m_x += v.m_x;
+    m_y += v.m_y;
+    m_z += v.m_z;
+}
+
+int main() {
+    Point3D p(3.0, 4.0, 5.0);
+    Vector3D v(3.0, 3.0, -2.0);
+    p.print(); // Point(3 , 4 , 5)
+    p.moveByVector(v);
+    p.print(); // Point(6 , 7 , 3)
+    return 0;
+}
+```
+
+**c):**
+
+**Point3D.h:**
+```c++
+// Определение класса Point3D
+#ifndef RAVESLI_POINT3D_H
+#define RAVESLI_POINT3D_H
+
+class Vector3D; // предварительное объявление класса Vector3D для функции moveByVector()
+class Point3D {
+private:
+    double m_x;
+    double m_y;
+    double m_z;
+public:
+    Point3D(double x = 0.0, double y = 0.0, double z = 0.0) :
+            m_x(x), m_y(y), m_z(z) {}
+
+    void print();
+
+    // предварительное объявление, приведенное выше, нужно для выполнения этой строки
+    void moveByVector(const Vector3D &v);
+};
+
+#endif //RAVESLI_POINT3D_H
+```
+
+**Point3D.cpp:**
+```c++
+// Определение методов класса Point3D
+#include <iostream> // для std::cout
+#include "Point3D.h" // класс Point3D определен здесь
+#include "Vector3D.h" // для параметра функции moveByVector()
+
+void Point3D::moveByVector(const Vector3D &v) {
+// Добавляем координаты вектора к соответствующим координатам точки
+    m_x += v.m_x;
+    m_y += v.m_y;
+    m_z += v.m_z;
+}
+
+void Point3D::print() {
+    std::cout << "Point(" << m_x << " , " << m_y << " , " << m_z << ")\n";
+}
+```
+
+**Vector3D.h:**
+```c++
+// Определение класса Vector3D
+#ifndef RAVESLI_VECTOR3D_H
+#define RAVESLI_VECTOR3D_H
+
+#include "Point3D.h"
+
+class Vector3D {
+private:
+    double m_x;
+    double m_y;
+    double m_z;
+public:
+    Vector3D(double x = 0.0, double y = 0.0, double z = 0.0) : m_x(x),
+                                                               m_y(y), m_z(z) {}
+
+    void print();
+
+    friend void Point3D::moveByVector(const Vector3D &v);
+};
+
+#endif //RAVESLI_VECTOR3D_H
+```
+
+**Vector3D.cpp:**
+```c++
+// Определение методов класса Vector3D
+#include <iostream>
+#include "Vector3D.h" // класс Vector3D определен в этом файле
+
+void Vector3D::print() {
+    std::cout << "Vector(" << m_x << " , " << m_y << " , " << m_z << ")\n";
+}
+```
+
+**main.cpp:**
+```c++
+#include "Vector3D.h" // для создания объекта класса Vector3D
+#include "Point3D.h" // для создания объекта класса Point3D
+
+int main() {
+    Point3D p(3.0, 4.0, 5.0);
+    Vector3D v(3.0, 3.0, -2.0);
+    p.print(); // Point(3 , 4 , 5)
+    p.moveByVector(v);
+    p.print(); // Point(6 , 7 , 3)
+}
+```
+
+## Урок №135. Анонимные объекты
+**Анонимный объект** — это значение без имени.
+```c++
+int add(int a, int b) {
+    return a + b; // анонимный объект создается для хранения и возврата
+    // результата выражения a + b
+}
+
+int main() {
+    std::cout << add(4, 2);
+    
+    return 0;
+}
+```
+
+```c++
+#include <iostream>
+
+void printResult(int value) {
+    std::cout << value;
+}
+
+int main() {
+    printResult(4 + 2);
+    
+    return 0;
+}
+```
+
+### Анонимные объекты класса
+```c++
+#include <iostream>
+
+class Dollars {
+private:
+    int m_dollars;
+public:
+    Dollars(int dollars) : m_dollars{dollars} {}
+
+    int getDollars() const { return m_dollars; }
+};
+
+void print(const Dollars &dollars) {
+    std::cout << dollars.getDollars() << " dollars.";
+}
+
+int main() {
+    print(Dollars(7)); // здесь мы передаем анонимный объект класса Dollars - 7 dollars
+
+    return 0;
+}
+```
+
+```c++
+#include <iostream>
+
+class Dollars {
+private:
+    int m_dollars;
+public:
+    Dollars(int dollars) : m_dollars{dollars} {}
+
+    int getDollars() const { return m_dollars; }
+};
+
+Dollars add(const Dollars &d1, const Dollars &d2) {
+    return Dollars(d1.getDollars() + d2.getDollars()); // возвращаем анонимный объект класса Dollars
+}
+
+int main() {
+    std::cout << "I have " << add(Dollars(7), Dollars(9)).getDollars()
+              << " dollars." << std::endl; // выводим анонимный объект класса Dollars
+                // I have 16 dollars.
+    return 0;
+}
+```
+
+### Резюме
+Анонимные объекты в языке C++ используются для передачи или возврата значений\
+без необходимости создавать большое количество временных переменных.\
+Динамическое выделение памяти также выполняется через анонимные объекты\
+(поэтому адрес выделенной памяти должен быть присвоен указателю, иначе мы не\
+имели бы способа ссылаться/использовать её).
+
+Стоит еще отметить, что анонимные объекты рассматриваются как r-values (а не как\
+l-values, у которых есть адрес). Это означает, что анонимные объекты могут\
+передаваться или возвращаться только по значению или по константной ссылке. В\
+противном случае, должна использоваться переменная.
+
+Помните, что анонимные объекты можно использовать только один раз, так как они\
+имеют область видимости выражения. Если вам нужно ссылаться на значение в\
+нескольких выражениях, то для этого следует использовать отдельную переменную.
+
