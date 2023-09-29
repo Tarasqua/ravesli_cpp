@@ -2289,4 +2289,646 @@ l-values, у которых есть адрес). Это означает, чт�
 имеют область видимости выражения. Если вам нужно ссылаться на значение в\
 нескольких выражениях, то для этого следует использовать отдельную переменную.
 
-## Урок
+## Урок №136. Вложенные типы данных в классах
+### Вложенные пользовательские типы данных в классах
+```c++
+#include <iostream>
+
+class Fruit {
+public:
+    // FruitList внутри класса под спецификатором доступа public
+    enum FruitList {
+        AVOCADO,
+        BLACKBERRY,
+        LEMON
+    };
+private:
+    FruitList m_type;
+public:
+    Fruit(FruitList type) : m_type(type) {}
+
+    FruitList getType() { return m_type; }
+};
+
+int main() {
+    // Доступ к FruitList осуществляется через Fruit
+    Fruit avocado(Fruit::AVOCADO);
+
+    if (avocado.getType() == Fruit::AVOCADO)
+        std::cout << "I am an avocado!"; // I am an avocado!
+    else
+        std::cout << "I am not an avocado!";
+
+    return 0;
+}
+```
+Обратите внимание, поскольку классы enum также работают как пространства имен,\
+и если бы мы поместили класс enum (вместо обычного enum) с именем `FruitList`\
+внутрь класса `Fruit`, то доступ к перечислителю `AVOCADO` осуществлялся бы через\
+`Fruit::FruitList::AVOCADO`.
+
+## Урок №137. Измерение времени выполнения (тайминг) кода
+Для его использования нужно определить объект класса `Timer` в верхней части\
+функции `main()` (или откуда вы хотите начинать отсчет), а затем просто вызвать\
+метод `elapsed()` после части кода, которую вы проверяете:
+```c++
+#include <iostream>
+#include <chrono> // для функций из std::chrono
+
+class Timer {
+private:
+    // Псевдонимы типов используются для удобного доступа к вложенным типам
+    using clock_t = std::chrono::high_resolution_clock;
+    using second_t = std::chrono::duration<double, std::ratio<1> >;
+    std::chrono::time_point<clock_t> m_beg;
+public:
+    Timer() : m_beg(clock_t::now()) {
+    }
+
+    void reset() {
+        m_beg = clock_t::now();
+    }
+
+    double elapsed() const {
+        return std::chrono::duration_cast<second_t>(clock_t::now() - m_beg).count();
+    }
+};
+
+int main() {
+    Timer t;
+    // Здесь находится код, к которому применяется тайминг
+    std::cout << "Time elapsed: " << t.elapsed() << '\n';
+
+    return 0;
+}
+```
+
+**Реальный пример:**
+```c++
+#include <iostream>
+#include <array>
+#include <random>
+#include <algorithm> // для std::sort()
+#include <chrono> // для функций из std::chrono
+
+class Timer {
+private:
+    // Псевдонимы типов используются для удобного доступа к вложенным типам
+    using clock_t = std::chrono::high_resolution_clock;
+    using second_t = std::chrono::duration<double, std::ratio<1> >;
+    std::chrono::time_point<clock_t> m_beg;
+public:
+    Timer() : m_beg(clock_t::now()) {
+    }
+
+    void reset() {
+        m_beg = clock_t::now();
+    }
+
+    double elapsed() const {
+        return std::chrono::duration_cast<second_t>(clock_t::now() - m_beg).count();
+    }
+};
+
+int main() {
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> dist6(1,100);
+    const int arrayLength {100000};
+    std::array<int, arrayLength> array{};
+    for (int i = 0; i < arrayLength; ++i) {
+        array[i] = static_cast<int>(dist6(rng));
+    }
+    Timer t;
+    std::sort(array.begin(), array.end());
+    std::cout << "Time elapsed: " << t.elapsed() << '\n'; // Time elapsed: 0.00902012
+
+    return 0;
+}
+```
+
+## Глава №8. Итоговый тест
+### Теория
+**Классы** позволяют создавать собственные типы данных, которые объединяют\
+данные и функции, работающие с этими данными. Данные и функции внутри класса\
+называются членами. Доступ к членам класса осуществляется через **оператор\
+выбора членов** `.` (или через оператор `->`, если вы получаете доступ к элементу\
+через указатель).
+
+**Спецификаторы доступа** позволяют указать, кто будет иметь доступ к членам\
+класса. Доступ к открытым (`public`) членам класса имеют все. Доступ к закрытым\
+(`private`) членам класса имеют только другие члены класса. О `protected` мы\
+поговорим детально, когда будем рассматривать наследование в языке С++. По\
+умолчанию все члены класса являются `private`, а все члены структуры — `public`.
+
+**Инкапсуляция** — это когда все переменные-члены вашего класса являются\
+закрытыми, и доступ к ним напрямую невозможен.
+
+**Конструктор** — это специальный тип метода класса, который позволяет\
+инициализировать объекты класса. Конструктор, который не принимает никаких\
+параметров (или имеет все параметры по умолчанию), называется **конструктором\
+по умолчанию**. Конструктор по умолчанию выполняется, если пользователем не\
+предоставлены значения для инициализации. Вы всегда должны иметь по крайней\
+мере один конструктор для выполнения в каждом из своих классов.
+
+**Список инициализации членов класса** позволяет инициализировать переменные-\
+члены из конструктора (вместо присваивания значений переменным-членам).
+
+В C++11 **инициализация нестатических членов класса** позволяет напрямую\
+указывать значения по умолчанию для переменных-членов при их объявлении.
+
+До C++11 конструкторы не должны вызывать другие конструкторы (хоть это и\
+скомпилируется, но будет работать не так, как вы ожидаете). В C++11 конструкторам\
+разрешено вызывать другие конструкторы. Этот процесс называется\
+**делегированием конструкторов** (или **"цепочкой конструкторов"**).
+
+**Деструктор** — это специальный тип метода класса, с помощью которого\
+выполняется очистка класса. Именно в деструкторах следует выполнять\
+освобождение динамически выделенной памяти.
+
+Все методы имеют **скрытый указатель `*this`**, который указывает на текущий объект\
+класса (который используется в данный момент). В большинстве случаев вам не\
+нужно напрямую обращаться к этому указателю.
+
+Хорошей практикой в программировании является **использование заголовочных\
+файлов при работе с классами**, когда определения классов находятся в\
+заголовочном файле с тем же именем, что у класса, а определения методов класса\
+— в файле `.cpp` с тем же именем, что у класса.
+
+**Методы класса могут (и должны) быть `const`**, если они не изменяют данные класса.\
+Константные объекты класса могут вызывать только константные методы класса.
+
+**Статические переменные-члены класса** являются общими для всех объектов\
+класса. Доступ к ним можно получить как из любого объекта класса, так и\
+непосредственно через оператор разрешения области видимости `::`.
+
+Аналогично, **статические методы класса** — это методы, которые не имеют\
+указателя `*this`. Они имеют доступ только к статическим переменным-членам\
+класса.
+
+**Дружественные функции** — это внешние функции, которые имеют доступ к\
+закрытым членам класса.
+
+**Дружественные классы** — это классы, в которых все методы являются\
+дружественными функциями.
+
+**Анонимные объекты** создаются для обработки выражений или для\
+передачи/возврата значений.
+
+В качестве **вложенных типов в классах** обычно используются перечисления, но\
+также можно использовать и другие пользовательские типы данных (включая\
+другие классы), если это необходимо.
+
+**Тайминг кода** осуществляется через библиотеку `chrono` и позволяет засечь время\
+выполнения определенного фрагмента кода.
+
+### Тест
+**Задание №1. a):**
+```c++
+#include <iostream>
+
+class Point {
+private:
+    double m_a;
+    double m_b;
+public:
+    Point(double a = 0.0, double b = 0.0)
+            : m_a(a), m_b(b) {
+    }
+
+    void print() const {
+        std::cout << "Point(" << m_a << ", " << m_b << ")\n";
+    }
+};
+
+int main() {
+    Point first;
+    Point second(2.0, 5.0);
+    first.print(); // Point(0, 0)
+    second.print(); // Point(2, 5)
+    return 0;
+}
+```
+
+**b):**
+```c++
+#include <iostream>
+#include <cmath>
+
+class Point {
+private:
+    double m_a;
+    double m_b;
+public:
+    Point(double a = 0.0, double b = 0.0)
+            : m_a(a), m_b(b) {
+    }
+
+    void print() const {
+        std::cout << "Point(" << m_a << ", " << m_b << ")\n";
+    }
+
+    double distanceTo(const Point &other) const {
+        return sqrt(pow(m_a - other.m_a, 2) + pow(m_b - other.m_b, 2));
+    }
+};
+
+int main() {
+    Point first;
+    Point second(2.0, 5.0);
+    first.print(); // Point(0, 0)
+    second.print(); // Point(2, 5)
+    std::cout << first.distanceTo(second); // 5.38516
+    return 0;
+}
+```
+
+**c):**
+```c++
+#include <iostream>
+#include <cmath>
+
+class Point {
+private:
+    double m_a;
+    double m_b;
+public:
+    Point(double a = 0.0, double b = 0.0)
+            : m_a(a), m_b(b) {
+    }
+
+    void print() const {
+        std::cout << "Point(" << m_a << ", " << m_b << ")\n";
+    }
+
+    friend double distanceFrom(const Point &one, const Point &another);
+};
+
+double distanceFrom(const Point &one, const Point &another) {
+    return sqrt(pow(one.m_a - another.m_a, 2) + pow(one.m_b - another.m_b, 2));
+}
+
+int main() {
+    Point first;
+    Point second(2.0, 5.0);
+    first.print(); // Point(0, 0)
+    second.print(); // Point(2, 5)
+    std::cout << distanceFrom(first, second); // 5.38516
+    return 0;
+}
+```
+
+**Задание №2.**
+```c++
+#include <iostream>
+
+class Welcome {
+private:
+    char *m_data;
+public:
+    Welcome() {
+        m_data = new char[14];
+        const char *init = "Hello, World!";
+        for (int i = 0; i < 14; ++i)
+            m_data[i] = init[i];
+    }
+
+    ~Welcome() {
+        delete[] m_data;
+    }
+
+    void print() const {
+        std::cout << m_data;
+    }
+};
+
+int main() {
+    Welcome hello;
+    hello.print(); // Hello, World!
+    return 0;
+}
+```
+
+**Задание №3.**
+```c++
+#include <iostream>
+#include <ctime> // для time()
+#include <cstdlib> // для rand() и srand()
+#include <string>
+#include <utility>
+
+class Monster {
+public:
+    enum MonsterType {
+        Dragon, Goblin, Ogre, Orc,
+        Skeleton, Troll, Vampire, Zombie,
+        MAX_MONSTER_TYPES
+    };
+private:
+    MonsterType m_type;
+    std::string m_name;
+    int m_health;
+public:
+    Monster(MonsterType type, std::string name, int health)
+            : m_type(type), m_name(std::move(name)), m_health(health) {
+    }
+
+    std::string getTypeString() const {
+        switch (m_type) {
+            case Dragon:
+                return "dragon";
+            case Goblin:
+                return "goblin";
+            case Ogre:
+                return "ogre";
+            case Orc:
+                return "orc";
+            case Skeleton:
+                return "skeleton";
+            case Troll:
+                return "troll";
+            case Vampire:
+                return "vampire";
+            case Zombie:
+                return "zombie";
+        }
+        return "Error!";
+    }
+
+    void print() const {
+        std::cout << m_name << " is the " << getTypeString() << " that has "
+                  << m_health << " health points." << '\n';
+    }
+};
+
+class MonsterGenerator {
+public:
+    // Генерируем случайное число между min и max (включительно).
+    // Предполагается, что srand() уже был вызван
+    static int getRandomNumber(int min, int max) {
+        // используем static, так как это значение нужно вычислить единожды
+        static const double fraction = 1.0 / (static_cast<double>(RAND_MAX) + 1.0);
+        // Равномерно распределяем вычисление значения из нашего диапазона
+        return static_cast<int>(rand() * fraction * (max - min + 1) + min);
+    }
+
+    static Monster generateMonster() {
+        auto type = static_cast<Monster::MonsterType>(
+                getRandomNumber(0, Monster::MAX_MONSTER_TYPES - 1));
+        int health = getRandomNumber(1, 100);
+        static std::string s_names[6]{"John", "Brad", "Alex", "Thor", "Hulk", "Asnee"};
+        return Monster(type, s_names[getRandomNumber(0, 5)], health);
+    }
+};
+
+int main() {
+    srand(static_cast<unsigned int>(time(0))); // используем системные часы в
+    // качестве стартового значения
+    Monster m = MonsterGenerator::generateMonster();
+    m.print(); // Brad is the orc that has 40 health points.
+    return 0;
+}
+```
+
+**Задание №4.**
+```c++
+#include <iostream>
+#include <array>
+#include <ctime> // для time()
+#include <cstdlib> // для rand() и srand()
+#include <cassert> // для assert()
+
+class Card {
+public:
+    enum CardSuit {
+        SUIT_CLUB,
+        SUIT_DIAMOND,
+        SUIT_HEART,
+        SUIT_SPADE,
+        MAX_SUITS
+    };
+    enum CardRank {
+        RANK_2,
+        RANK_3,
+        RANK_4,
+        RANK_5,
+        RANK_6,
+        RANK_7,
+        RANK_8,
+        RANK_9,
+        RANK_10,
+        RANK_JACK,
+        RANK_QUEEN,
+        RANK_KING,
+        RANK_ACE,
+        MAX_RANKS
+    };
+private:
+    CardRank m_rank;
+    CardSuit m_suit;
+public:
+    Card(CardRank rank = MAX_RANKS, CardSuit suit = MAX_SUITS) :
+            m_rank(rank), m_suit(suit) {
+    }
+
+    void printCard() const {
+        switch (m_rank) {
+            case RANK_2:
+                std::cout << '2';
+                break;
+            case RANK_3:
+                std::cout << '3';
+                break;
+            case RANK_4:
+                std::cout << '4';
+                break;
+            case RANK_5:
+                std::cout << '5';
+                break;
+            case RANK_6:
+                std::cout << '6';
+                break;
+            case RANK_7:
+                std::cout << '7';
+                break;
+            case RANK_8:
+                std::cout << '8';
+                break;
+            case RANK_9:
+                std::cout << '9';
+                break;
+            case RANK_10:
+                std::cout << 'T';
+                break;
+            case RANK_JACK:
+                std::cout << 'J';
+                break;
+            case RANK_QUEEN:
+                std::cout << 'Q';
+                break;
+            case RANK_KING:
+                std::cout << 'K';
+                break;
+            case RANK_ACE:
+                std::cout << 'A';
+                break;
+        }
+        switch (m_suit) {
+            case SUIT_CLUB:
+                std::cout << 'C';
+                break;
+            case SUIT_DIAMOND:
+                std::cout << 'D';
+                break;
+            case SUIT_HEART:
+                std::cout << 'H';
+                break;
+            case SUIT_SPADE:
+                std::cout << 'S';
+                break;
+        }
+    }
+
+    int getCardValue() const {
+        switch (m_rank) {
+            case RANK_2:
+                return 2;
+            case RANK_3:
+                return 3;
+            case RANK_4:
+                return 4;
+            case RANK_5:
+                return 5;
+            case RANK_6:
+                return 6;
+            case RANK_7:
+                return 7;
+            case RANK_8:
+                return 8;
+            case RANK_9:
+                return 9;
+            case RANK_10:
+                return 10;
+            case RANK_JACK:
+                return 10;
+            case RANK_QUEEN:
+                return 10;
+            case RANK_KING:
+                return 10;
+            case RANK_ACE:
+                return 11;
+        }
+        return 0;
+    }
+};
+
+class Deck {
+private:
+    std::array<Card, 52> m_deck;
+    int m_cardIndex = 0;
+
+    // Генерируем случайное число между min и max (включительно).
+    // Предполагается, что srand() уже был вызван
+    static int getRandomNumber(int min, int max) {
+        // используем static, так как это значение нужно вычислить единожды
+        static const double fraction = 1.0 / (static_cast<double>(RAND_MAX) + 1.0);
+        // Равномерно распределяем вычисление значения из нашего диапазона
+        return static_cast<int>(rand() * fraction * (max - min + 1) + min);
+    }
+
+    static void swapCard(Card &a, Card &b) {
+        Card temp = a;
+        a = b;
+        b = temp;
+    }
+
+public:
+    Deck() {
+        int card = 0;
+        for (int suit = 0; suit < Card::MAX_SUITS; ++suit)
+            for (int rank = 0; rank < Card::MAX_RANKS; ++rank) {
+                m_deck[card] = Card(static_cast<Card::CardRank>(rank),
+                                    static_cast<Card::CardSuit>(suit));
+                ++card;
+            }
+    }
+
+    void printDeck() const {
+        for (const auto &card: m_deck) {
+            card.printCard();
+            std::cout << ' ';
+        }
+        std::cout << '\n';
+    }
+
+    void shuffleDeck() {
+        // Перебираем каждую карту в колоде
+        for (int index = 0; index < 52; ++index) {
+            // Выбираем любую случайную карту
+            int swapIndex = getRandomNumber(0, 51);
+            // Меняем местами с нашей текущей картой
+            swapCard(m_deck[index], m_deck[swapIndex]);
+        }
+        m_cardIndex = 0; // начинаем новую раздачу карт
+    }
+
+    const Card &dealCard() {
+        assert (m_cardIndex < 52);
+        return m_deck[m_cardIndex++];
+    }
+};
+
+char getPlayerChoice() {
+    std::cout << "(h) to hit, or (s) to stand: ";
+    char choice;
+    do {
+        std::cin >> choice;
+    } while (choice != 'h' && choice != 's');
+    return choice;
+}
+
+bool playBlackjack(Deck &deck) {
+    int playerTotal = 0;
+    int dealerTotal = 0;
+    // Дилер получает одну карту
+    dealerTotal += deck.dealCard().getCardValue();
+    std::cout << "The dealer is showing: " << dealerTotal << '\n';
+    // Игрок получает две карты
+    playerTotal += deck.dealCard().getCardValue();
+    playerTotal += deck.dealCard().getCardValue();
+    // Игрок начинает
+    while (1) {
+        std::cout << "You have: " << playerTotal << '\n';
+        char choice = getPlayerChoice();
+        if (choice == 's')
+            break;
+        playerTotal += deck.dealCard().getCardValue();
+        // Смотрим, не проиграл ли игрок
+        if (playerTotal > 21)
+            return false;
+    }
+    // Если игрок не проиграл (у него не больше 21 очка), тогда дилер
+    // получает карты до тех пор, пока у него будет не меньше 17 очков
+    while (dealerTotal < 17) {
+        dealerTotal += deck.dealCard().getCardValue();
+        std::cout << "The dealer now has: " << dealerTotal << '\n';
+    }
+    // Если дилер проиграл, то игрок выиграл
+    if (dealerTotal > 21)
+        return true;
+    return (playerTotal > dealerTotal);
+}
+
+int main() {
+    srand(static_cast<unsigned int>(time(0))); // используем системные
+    // часы в качестве стартового значения
+    rand(); // пользователям Visual Studio: делаем сброс первого случайного числа
+    Deck deck;
+    deck.shuffleDeck();
+    if (playBlackjack(deck))
+        std::cout << "You win!\n";
+    else
+        std::cout << "You lose!\n";
+    return 0;
+}
+```
