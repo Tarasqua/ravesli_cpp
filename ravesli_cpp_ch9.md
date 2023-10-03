@@ -13,6 +13,12 @@
 9. [Урок №146. Перегрузка оператора индексации `[]`](#урок-146-перегрузка-оператора-индексации-)
 10. [Урок №147. Перегрузка оператора `()`](#урок-147-перегрузка-оператора-)
 11. [Урок №148. Перегрузка операций преобразования типов данных](#урок-148-перегрузка-операций-преобразования-типов-данных)
+12. [Урок №149. Конструктор копирования](#урок-149-конструктор-копирования)
+13. [Урок №150. Копирующая инициализация](#урок-150-копирующая-инициализация)
+14. [Урок №151. Конструкторы преобразования, ключевые слова `explicit` и `delete`](#урок-151-конструкторы-преобразования-ключевые-слова-explicit-и-delete)
+15. [Урок №152. Перегрузка оператора присваивания](#урок-152-перегрузка-оператора-присваивания)
+16. [Урок №153. Поверхностное и глубокое копирование](#урок-153-поверхностное-и-глубокое-копирование)
+17. [Глава №9. Итоговый тест](#глава-9-итоговый-тест)
 
 ## [Урок №138. Введение в перегрузку операторов](#урок-138-введение-в-перегрузку-операторов)
 
@@ -1349,4 +1355,1130 @@ int main() {
 ```
 
 ## [Урок №148. Перегрузка операций преобразования типов данных](#урок-148-перегрузка-операций-преобразования-типов-данных)
+Перегрузка операции преобразования значений типа `Dollars` в тип `int`.
+```c++
+#include <iostream>
+#include <string>
+#include <utility>
 
+class Dollars {
+private:
+    int m_dollars;
+public:
+    Dollars(int dollars = 0) : m_dollars{dollars} {}
+
+    // Перегрузка операции преобразования значений типа Dollars в значения типа int
+    operator int() const { return m_dollars; }
+
+    int &getDollars() { return m_dollars; }
+    void setDollars(int dollars) { m_dollars = dollars; }
+};
+
+
+int main() {
+    Dollars dollars{9};
+    int d = dollars;
+    std::cout << d; // 9
+    dollars = 2;
+    std::cout << dollars; // 2
+    dollars = static_cast<int>(3.4);
+    std::cout << dollars; // 3
+}
+```
+**Здесь есть две вещи, на которые следует обратить внимание:**
+* В качестве функции перегрузки используется метод `operator int()`.\
+  Обратите внимание, между словом `operator` и типом, в который мы хотим\
+  выполнить конвертацию (в данном случае, тип int), находится пробел.
+* Функция перегрузки не имеет типа возврата. Язык C++ предполагает, что вы\
+  будете возвращать корректный тип.
+
+```c++
+#include <iostream>
+
+class Dollars {
+private:
+    int m_dollars;
+public:
+    Dollars(int dollars = 0) : m_dollars{dollars} {}
+
+    // Перегрузка операции преобразования значения типа Dollars в значение типа int
+    operator int() const { return m_dollars; }
+    int &getDollars() { return m_dollars; }
+    void setDollars(int dollars) { m_dollars = dollars; }
+};
+
+class Cents {
+private:
+    int m_cents;
+public:
+    Cents(int cents = 0) : m_cents{cents} {}
+
+    // Выполняем конвертацию Cents в Dollars
+    operator Dollars() const { return {m_cents / 100}; }
+};
+
+void printDollars(Dollars dollars) {
+    std::cout << dollars; // dollars неявно конвертируется в int здесь
+}
+
+int main() {
+    Cents cents(622);
+    printDollars(cents); // cents неявно конвертируется в Dollars здесь // 6
+
+    return 0;
+}
+```
+
+## [Урок №149. Конструктор копирования](#урок-149-конструктор-копирования)
+```c++
+#include <cassert>
+#include <iostream>
+
+class Drob {
+private:
+    int m_numerator;
+    int m_denominator;
+public:
+    // Конструктор по умолчанию
+    Drob(int numerator = 0, int denominator = 1) :
+            m_numerator{numerator}, m_denominator{denominator} {
+        assert(denominator != 0);
+    }
+    friend std::ostream &operator<<(std::ostream &out, const Drob &d1);
+};
+
+std::ostream &operator<<(std::ostream &out, const Drob &d1) {
+    out << d1.m_numerator << "/" << d1.m_denominator;
+    return out;
+}
+
+
+int main() {
+    Drob sixSeven{6, 7}; // uniform-инициализация объекта класса Drob,
+    // вызывается конструктор Drob(int, int)
+    Drob dCopy{sixSeven}; // uniform-инициализация - конструктор копирования
+    std::cout << dCopy << '\n'; // 6/7
+    return 0;
+}
+```
+
+**Конструктор копирования** — это особый тип конструктора, который используется\
+для создания нового объекта через копирование существующего объекта.
+
+Поскольку компилятор мало знает о вашем классе, то по умолчанию созданный конструктор\
+копирования будет использовать почленную инициализацию.\
+**Почленная инициализация** означает, что каждый член объекта-копии инициализируется\
+непосредственно из члена объекта-оригинала. Т.е. в примере, приведенном выше,\
+`dCopy.m_numerator` будет иметь значение `sixSeven.m_numerator {6}`, а\
+`dCopy.m_denominator` будет равен `sixSeven.m_ denominator {7}`.
+
+Мы можем также определить конструктор копирования:
+```c++
+#include <cassert>
+#include <iostream>
+
+class Drob {
+private:
+    int m_numerator;
+    int m_denominator;
+public:
+    // Конструктор по умолчанию
+    Drob(int numerator = 0, int denominator = 1) :
+            m_numerator{numerator}, m_denominator{denominator} {
+        assert(denominator != 0);
+    }
+
+    // Конструктор копирования
+    Drob(const Drob &drob) :
+            m_numerator{drob.m_numerator}, m_denominator{drob.m_denominator} {
+        // Примечание: Мы имеем прямой доступ к членам объекта drob,
+        // поскольку мы сейчас находимся внутри класса Drob
+        // Также нет необходимости выполнять проверку denominator здесь, так как
+        // эта проверка уже осуществляется в конструкторе класса Drob
+        std::cout << "Copy constructor worked here!\n"; // просто, чтобы показать, что это работает
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const Drob &d1);
+};
+
+std::ostream &operator<<(std::ostream &out, const Drob &d1) {
+    out << d1.m_numerator << "/" << d1.m_denominator;
+    return out;
+}
+
+
+int main() {
+    Drob sixSeven{6, 7}; // uniform-инициализация объекта класса Drob,
+    // вызывается конструктор Drob(int, int)
+    Drob dCopy{sixSeven}; // Copy constructor worked here!
+    std::cout << dCopy << '\n'; // 6/7
+    return 0;
+}
+```
+
+### Предотвращение создания копий объектов
+Мы можем предотвратить создание копий объектов наших классов, сделав\
+конструктор копирования закрытым:
+```c++
+#include <cassert>
+#include <iostream>
+
+class Drob {
+private:
+    int m_numerator;
+    int m_denominator;
+
+    // Конструктор копирования (закрытый)
+    Drob(const Drob &drob) :
+            m_numerator{drob.m_numerator}, m_denominator{drob.m_denominator} {
+        std::cout << "Copy constructor worked here!\n";
+    }
+public:
+    // Конструктор по умолчанию
+    Drob(int numerator = 0, int denominator = 1) :
+            m_numerator{numerator}, m_denominator{denominator} {
+        assert(denominator != 0);
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const Drob &d1);
+};
+
+std::ostream &operator<<(std::ostream &out, const Drob &d1) {
+    out << d1.m_numerator << "/" << d1.m_denominator;
+    return out;
+}
+
+
+int main() {
+    Drob sixSeven{6, 7}; // uniform-инициализация объекта класса Drob,
+    // вызывается конструктор Drob(int, int)
+    Drob dCopy{sixSeven};// конструктор копирования является закрытым,
+    // поэтому эта строка вызовет ошибку компиляции
+    std::cout << dCopy << '\n'; // 6/7
+    return 0;
+}
+```
+
+### Конструктор копирования может быть проигнорирован
+```c++
+#include <cassert>
+#include <iostream>
+
+class Drob {
+private:
+    int m_numerator;
+    int m_denominator;
+public:
+    // Конструктор по умолчанию
+    Drob(int numerator = 0, int denominator = 1) :
+            m_numerator{numerator}, m_denominator{denominator} {
+        assert(denominator != 0);
+    }
+
+    // Конструктор копирования
+    Drob(const Drob &drob) :
+            m_numerator{drob.m_numerator}, m_denominator{drob.m_denominator} {
+        std::cout << "Copy constructor worked here!\n";
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const Drob &d1);
+};
+
+std::ostream &operator<<(std::ostream &out, const Drob &d1) {
+    out << d1.m_numerator << "/" << d1.m_denominator;
+    return out;
+}
+
+
+int main() {
+    Drob sixSeven{Drob{6, 7}}; // uniform-инициализация объекта класса Drob,
+    std::cout << sixSeven << '\n'; // 6/7 без "Copy constructor worked here!"
+    return 0;
+}
+```
+
+Дело в том, что инициализация анонимного объекта, а затем использование этого\
+объекта для прямой инициализации уже не анонимного объекта выполняется в два\
+этапа (первый этап — это создание анонимного объекта, второй этап — это вызов\
+конструктора копирования). Однако, конечный результат по сути идентичен\
+простому выполнению прямой инициализации, которая занимает всего лишь один\
+шаг.\
+По этой причине в таких случаях компилятору разрешается отказаться от вызова\
+конструктора копирования и просто выполнить прямую инициализацию. Этот\
+процесс называется **элизией**.\
+По этой причине это:
+```c++
+Drob sixSeven(Drob(6, 7));
+```
+Заменяется на это:
+```c++
+Drob sixSeven(6, 7);
+```
+
+## [Урок №150. Копирующая инициализация](#урок-150-копирующая-инициализация)
+### Использование копирующей инициализации с классами
+```c++
+#include <cassert>
+#include <iostream>
+
+class Drob {
+private:
+    int m_numerator;
+    int m_denominator;
+
+public:
+    // Конструктор по умолчанию
+    Drob(int numerator = 0, int denominator = 1) :
+            m_numerator{numerator}, m_denominator{denominator} {
+        assert(denominator != 0);
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const Drob &d1);
+};
+
+std::ostream &operator<<(std::ostream &out, const Drob &d1) {
+    out << d1.m_numerator << "/" << d1.m_denominator;
+    return out;
+}
+
+
+int main() {
+    Drob seven = Drob{7}; // обрабатывается как и Drob seven(Drob(7));
+    std::cout << seven << '\n'; // 7/1
+    return 0;
+}
+```
+
+**Правило: Избегайте использования копирующей инициализации при работе с\
+классами, вместо нее используйте uniform-инициализацию.**
+
+### Другие применения копирующей инициализации
+```c++
+#include <cassert>
+#include <iostream>
+
+class Drob {
+private:
+    int m_numerator;
+    int m_denominator;
+public:
+    // Конструктор по умолчанию
+    Drob(int numerator = 0, int denominator = 1) :
+            m_numerator{numerator}, m_denominator{denominator} {
+        assert(denominator != 0);
+    }
+
+    // Конструктор копирования
+    Drob(const Drob &copy) :
+            m_numerator{copy.m_numerator}, m_denominator{copy.m_denominator} {
+        std::cout << "Copy constructor worked here!\n";
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const Drob &d1);
+
+    int &getNumerator() { return m_numerator; }
+
+    void setNumerator(int numerator) { m_numerator = numerator; }
+};
+
+std::ostream &operator<<(std::ostream &out, const Drob &d1) {
+    out << d1.m_numerator << "/" << d1.m_denominator;
+    return out;
+}
+
+Drob makeNegative(Drob d) { // принимаем объект класса по значению
+    d.setNumerator(-d.getNumerator());
+    return d; // возвращаем по значению
+}
+
+
+int main() {
+    Drob sixSeven{6, 7};
+    std::cout << makeNegative(sixSeven) << '\n';
+    // Copy constructor worked here!
+    // Copy constructor worked here!
+    // -6/7
+    return 0;
+}
+```
+
+Первый вызов конструктора копирования выполнится при передаче `sixSeven` в\
+качестве аргумента в параметр `d` функции `makeNegative()`. Второй вызов выполнится\
+при возврате объекта из функции `makeNegative()` обратно в функцию `main()`. Таким\
+образом, объект `sixSeven` копируется дважды.
+
+Однако, в некоторых случаях, компилятор может проигнорировать использование\
+конструктора копирования:
+```c++
+#include <iostream>
+
+class Something {};
+
+Something boo() {
+    Something x;
+    return x;
+}
+
+int main() {
+    Something x = boo();
+    return 0;
+}
+```
+
+## [Урок №151. Конструкторы преобразования, ключевые слова `explicit` и `delete`](#урок-151-конструкторы-преобразования-ключевые-слова-explicit-и-delete)
+Конструкторы, которые используются в неявных преобразованиях, называются\
+**конструкторами преобразования** (или **"конструкторами конвертации"**).
+
+### Ключевое слово `explicit`
+Явные конструкторы (с ключевым словом `explicit`) не используются для неявных\
+конвертаций:
+```c++
+#include <iostream>
+
+class SomeString {
+private:
+    std::string m_string;
+public:
+    // Ключевое слово explicit делает этот конструктор закрытым для
+    // выполнения любых неявных преобразований
+    explicit SomeString(int a) { // выделяем строку размером a
+        m_string.resize(a);
+    }
+
+    SomeString(const char *string) { // выделяем строку для хранения значения типа string
+        m_string = string;
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const SomeString &s);
+};
+
+std::ostream &operator<<(std::ostream &out, const SomeString &s) {
+    out << s.m_string;
+    return out;
+}
+
+int main() {
+    SomeString mystring = 'a'; // ошибка компиляции, поскольку SomeString(int)
+    // является explicit и, соответственно, недоступен, а другого подходящего
+    // конструктора для преобразования компилятор не видит
+    std::cout << mystring;
+    return 0;
+}
+```
+
+Вышеприведенная программа не скомпилируется, так как `SomeString(int)` мы\
+сделали явным, а другого конструктора преобразования, который выполнил бы\
+неявную конвертацию `'a'` в `SomeString`, компилятор просто не нашел.
+
+Однако использование явного конструктора только предотвращает выполнение\
+неявных преобразований. Явные конвертации (через операторы явного\
+преобразования) по-прежнему разрешены:
+```c++
+std::cout << static_cast<SomeString>(7); // разрешено: явное преобразование 7 
+// в SomeString через оператор static_cast
+SomeString str('a'); // разрешено
+```
+
+**Правило: Для предотвращения возникновения ошибок с неявными\
+конвертациями делайте ваши конструкторы явными, используя ключевое слово\
+`explicit`.**
+
+### Ключевое слово `delete`
+Еще одним способом запретить конвертацию `'a'` в `SomeString` (неявным или явным\
+способом) является добавление закрытого конструктора `SomeString(char)`:
+```c++
+#include <iostream>
+
+class SomeString {
+private:
+    std::string m_string;
+
+    SomeString(char) {} // объекты типа SomeString(char) не могут быть созданы вне класса
+public:
+    explicit SomeString(int a) { // выделяем строку размером a
+        m_string.resize(a);
+    }
+
+    SomeString(const char *string) { // выделяем строку для хранения значения типа string
+        m_string = string;
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const SomeString &s);
+};
+
+std::ostream &operator<<(std::ostream &out, const SomeString &s) {
+    out << s.m_string;
+    return out;
+}
+
+int main() {
+    SomeString mystring('a'); // ошибка компиляции, поскольку SomeString(char) является private
+    return 0;
+}
+```
+Тем не менее, этот конструктор все еще может использоваться внутри класса\
+(private закрывает доступ к данным только для объектов вне тела класса).
+
+Лучшее решение — **использовать ключевое слово `delete`** (добавленное в C++11)\
+для удаления этого конструктора:
+```c++
+#include <iostream>
+
+class SomeString {
+private:
+    std::string m_string;
+public:
+    SomeString(char) = delete; // любое использование этого конструктора приведет к ошибке
+
+    // Ключевое слово explicit делает этот конструктор закрытым для выполнения
+    // любых неявных конвертаций
+    explicit SomeString(int a) { // выделяем строку размером a
+        m_string.resize(a);
+    }
+
+    SomeString(const char *string) { // выделяем строку для хранения значения типа string
+        m_string = string;
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const SomeString &s);
+};
+
+std::ostream &operator<<(std::ostream &out, const SomeString &s) {
+    out << s.m_string;
+    return out;
+}
+
+int main() {
+    SomeString mystring('a'); // ошибка компиляции, поскольку SomeString(char) удален
+    return 0;
+}
+```
+
+## [Урок №152. Перегрузка оператора присваивания](#урок-152-перегрузка-оператора-присваивания)
+**Оператор присваивания** (`=`) используется для копирования значений из одного\
+объекта в другой (уже существующий) объект.
+
+### Перегрузка оператора присваивания
+```c++
+#include <cassert>
+#include <iostream>
+
+class Drob {
+private:
+    int m_numerator;
+    int m_denominator;
+public:
+    // Конструктор по умолчанию
+    Drob(int numerator = 0, int denominator = 1) :
+            m_numerator{numerator}, m_denominator{denominator} {
+        assert(denominator != 0);
+    }
+
+    // Конструктор копирования
+    Drob(const Drob &copy) :
+            m_numerator{copy.m_numerator}, m_denominator{copy.m_denominator} {
+        std::cout << "Copy constructor worked here!\n";
+    }
+
+    // Перегрузка оператора присваивания
+    Drob &operator=(const Drob &drob) {
+        // Выполняем копирование значений
+        m_numerator = drob.m_numerator;
+        m_denominator = drob.m_denominator;
+        // Возвращаем текущий объект, чтобы иметь возможность связать в
+        // цепочку выполнение нескольких операций присваивания
+        return *this;
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const Drob &d1);
+};
+
+std::ostream &operator<<(std::ostream &out, const Drob &d1) {
+    out << d1.m_numerator << "/" << d1.m_denominator;
+    return out;
+}
+
+
+int main() {
+    Drob sixSeven(6, 7);
+    Drob d;
+    d = sixSeven; // вызывается перегруженный оператор присваивания
+    std::cout << d; // 6/7
+    
+    Drob d1{6, 7};
+    Drob d2(8,3);
+    Drob d3(10,4);
+    d1 = d2 = d3; // цепочка операций присваивания
+
+    return 0;
+}
+```
+
+### Самоприсваивание
+```c++
+int main() {
+    Drob d1{6, 7};
+    d1 = d1; // самоприсвоение
+
+    return 0;
+}
+```
+
+### Обнаружение и обработка самоприсваивания
+```c++
+// Перегрузка оператора присваивания
+Drob &operator=(const Drob &drob) {
+    // Проверка на самоприсваивание
+    if (this == &drob)
+        return *this;
+    
+    // Выполняем копирование значений
+    m_numerator = drob.m_numerator;
+    m_denominator = drob.m_denominator;
+    
+    // Возвращаем текущий объект
+    return *this;
+}
+```
+
+### Оператор присваивания по умолчанию
+```c++
+// Перегрузка оператора присваивания
+Drob &operator=(const Drob &drob) = default;
+
+// Или если мы хотим запретить перегрузку
+Drob& operator= (const Drob &drob) = delete; // нет созданию копий объектов
+// через операцию присваивания!
+```
+
+## [Урок №153. Поверхностное и глубокое копирование](#урок-153-поверхностное-и-глубокое-копирование)
+Конструктор копирования и оператор присваивания, которые C++ предоставляет\
+по умолчанию, используют почленный метод копирования — **поверхностное копирование**.
+Так, C++ выполняет копирование для каждого члена класса индивидуально (используя\
+оператор присваивания по умолчанию вместо перегрузки оператора присваивания и\
+прямую инициализацию вместо конструктора копирования).
+
+Когда классы простые (например, в них нет членов с динамически выделенной памятью),\
+то никаких проблем с этим не должно возникать:
+```c++
+class Drob {
+private:
+    int m_numerator;
+    int m_denominator;
+public:
+    // Конструктор по умолчанию
+    Drob(int numerator = 0, int denominator = 1) :
+            m_numerator{numerator}, m_denominator{denominator} {
+        assert(denominator != 0);
+    }
+
+    // Конструктор копирования
+    Drob(const Drob &copy) :
+            m_numerator{copy.m_numerator}, m_denominator{copy.m_denominator} {}
+
+    // Перегрузка оператора присваивания
+    Drob &operator=(const Drob &drob);
+
+    friend std::ostream &operator<<(std::ostream &out, const Drob &d1);
+};
+
+std::ostream &operator<<(std::ostream &out, const Drob &d1) {
+    out << d1.m_numerator << "/" << d1.m_denominator;
+    return out;
+}
+
+Drob &Drob::operator=(const Drob &drob) {
+    // Проверка на самоприсваивание
+    if (this == &drob)
+        return *this;
+
+    // Выполняем копирование
+    m_numerator = drob.m_numerator;
+    m_denominator = drob.m_denominator;
+    
+    // Возвращаем текущий объект, чтобы иметь возможность выполнять цепочку
+    // операций присваивания
+    return *this;
+}
+```
+
+Однако при работе с классами, в которых динамически выделяется память,\
+почленное (поверхностное) копирование может вызывать проблемы! Это связано с\
+тем, что **при поверхностном копировании указателя копируется только адрес\
+указателя — никаких действий по содержимому адреса указателя не\
+предпринимается:**
+```c++
+#include <cstring> // для strlen()
+#include <cassert> // для assert()
+
+class SomeString {
+private:
+    char *m_data;
+    int m_length;
+public:
+    SomeString(const char *source = "") {
+        assert(source); // проверяем не является ли source нулевой строкой
+        // Определяем длину source + еще один символ для нуль-
+        // терминатора (символ завершения строки)
+        m_length = strlen(source) + 1;
+        // Выделяем достаточно памяти для хранения копируемого значения в
+        // соответствии с длиной этого значения
+        m_data = new char[m_length];
+        // Копируем значение по символам в нашу выделенную память
+        for (int i = 0; i < m_length; ++i)
+            m_data[i] = source[i];
+        // Убеждаемся, что строка завершена
+        m_data[m_length - 1] = '\0';
+    }
+
+    ~SomeString() { // деструктор
+        // Освобождаем память, выделенную для нашей строки
+        delete[] m_data;
+    }
+
+    char *getString() { return m_data; }
+
+    int getLength() { return m_length; }
+};
+```
+
+Конструктор копирования по умолчанию будет выглядеть примерно\
+следующим образом:
+```c++
+SomeString::SomeString(const SomeString &source) :
+    m_length(source.m_length), m_data(source.m_data) {}
+```
+
+```c++
+int main() {
+    SomeString hello{"Hello, world!"};
+    {
+        SomeString copy = hello; // используется конструктор копирования по умолчанию
+    } // объект copy является локальной переменной, которая уничтожается
+    // здесь. Деструктор удаляет значение-строку объекта copy, оставляя,
+    // таким образом, hello с висячим указателем
+
+    std::cout << hello.getString() << '\n'; // здесь неопределенные результаты
+
+    return 0;
+}
+```
+
+### Глубокое копирование
+**При глубоком копировании память сначала выделяется для копирования адреса,\
+который содержит исходный указатель, а затем для копирования фактического\
+значения.**
+```c++
+#include <cassert>
+#include <cstring> // для strlen()
+#include <iostream>
+
+class SomeString {
+private:
+    char *m_data;
+    int m_length;
+public:
+    SomeString(const char *source = "") {
+        assert(source); // проверяем не является ли source нулевой строкой
+        // Определяем длину source + еще один символ для нуль-
+        // терминатора (символ завершения строки)
+        m_length = strlen(source) + 1;
+        // Выделяем достаточно памяти для хранения копируемого значения в
+        // соответствии с длиной этого значения
+        m_data = new char[m_length];
+        // Копируем значение по символам в нашу выделенную память
+        for (int i = 0; i < m_length; ++i)
+            m_data[i] = source[i];
+        // Убеждаемся, что строка завершена
+        m_data[m_length - 1] = '\0';
+    }
+
+    SomeString(const SomeString &source);
+
+    SomeString &operator=(const SomeString &source);
+
+    ~SomeString() { // деструктор
+        // Освобождаем память, выделенную для нашей строки
+        delete[] m_data;
+    }
+
+    char *getString() { return m_data; }
+
+    int getLength() { return m_length; }
+};
+
+// Конструктор копирования
+SomeString::SomeString(const SomeString &source) {
+    // Поскольку m_length не является указателем, то мы можем выполнить
+    // поверхностное копирование
+    m_length = source.m_length;
+    // m_data является указателем, поэтому нам нужно выполнить глубокое
+    // копирование, при условии, что этот указатель не является нулевым
+    if (source.m_data) {
+        // Выделяем память для нашей копии
+        m_data = new char[m_length];
+        // Выполняем копирование
+        for (int i = 0; i < m_length; ++i)
+            m_data[i] = source.m_data[i];
+    } else
+        m_data = nullptr;
+}
+
+// Оператор присваивания
+SomeString &SomeString::operator=(const SomeString &source) {
+    // Проверка на самоприсваивание
+    if (this == &source)
+        return *this;
+
+    // Сначала нам нужно очистить предыдущее значение m_data (члена неявного объекта)
+    delete[] m_data;
+
+    // Поскольку m_length не является указателем, то мы можем выполнить поверхностное копирование
+    m_length = source.m_length;
+
+    // m_data является указателем, поэтому нам нужно выполнить глубокое
+    // копирование, при условии, что этот указатель не является нулевым
+    if (source.m_data) {
+        // Выделяем память для нашей копии
+        m_data = new char[m_length];
+        // Выполняем копирование
+        for (int i = 0; i < m_length; ++i)
+            m_data[i] = source.m_data[i];
+    } else
+        m_data = nullptr;
+    
+    return *this;
+}
+```
+
+### Резюме
+* Конструктор копирования и оператор присваивания, предоставляемые по\
+  умолчанию языком C++, выполняют поверхностное копирование, что отлично\
+  подходит для классов без динамически выделенных членов.
+* Классы с динамически выделенными членами должны иметь конструктор\
+  копирования и перегрузку оператора присваивания, которые выполняют\
+  глубокое копирование.
+* Используйте функциональность классов из Стандартной библиотеки C++,\
+  нежели самостоятельно выполняйте/реализовывайте управление памятью.
+
+## [Глава №9. Итоговый тест](#глава-9-итоговый-тест)
+### Теория
+**Перегрузка оператора** — это специфическая перегрузка функции, которая\
+позволяет использовать операторы с объектами пользовательских классов. При\
+перегрузке операторов их функционал и назначение следует сохранять\
+максимально приближенно к их первоначальному применению. Если суть\
+применяемого оператора с объектами пользовательских классов интуитивно не\
+понятна, то лучше использовать функцию с именем, вместо перегрузки оператора.
+
+**Операторы могут быть перегружены через обычные функции, через\
+дружественные функции и через методы класса.** Следующие правила помогут\
+сориентироваться, какой способ перегрузки и когда следует использовать:
+* Перегрузку операторов присваивания (`=`), индекса (`[]`), вызова функции (`()`)\
+  или выбора члена (`->`) выполняйте через методы класса.
+* Перегрузку унарных операторов выполняйте через методы класса.
+* Перегрузку бинарных операторов, которые изменяют свой левый операнд\
+  (например, оператор `+=`) выполняйте через методы класса.
+* Перегрузку бинарных операторов, которые не изменяют свой левый операнд\
+  (например, оператор `+`) выполняйте через обычные или дружественные\
+  функции.
+
+**Перегрузка операций преобразования типов данных** используется для явного или\
+неявного преобразования объектов пользовательского класса в другой тип данных.
+
+**Конструктор копирования** — это особый тип конструктора, используемый для\
+инициализации объекта другим объектом того же класса. Конструкторы\
+копирования используются в прямой/uniform-инициализации объектов объектами\
+того же типа, копирующей инициализации (`Fraction f = Fraction(7,4)`) и\
+при передаче или возврате параметров по значению.
+
+Если вы не предоставите свой конструктор копирования, то компилятор\
+автоматически его предоставит. Конструкторы копирования по умолчанию\
+(предоставляемые компилятором) используют **почленную инициализацию**. Это\
+означает, что каждый член объекта копии инициализируется соответствующим\
+членом исходного объекта. Конструктор копирования может быть проигнорирован\
+компилятором в целях оптимизации, даже если он имеет побочные эффекты,\
+поэтому сильно не полагайтесь на свой конструктор копирования.
+
+Конструкторы считаются **конструкторами преобразования** по умолчанию. Это\
+означает, что компилятор будет использовать их для неявной конвертации объектов\
+других типов данных в объекты вашего класса. Вы можете избежать этого,\
+используя **ключевое слово `explicit`**. Вы также можете удалить функции внутри\
+своего класса, включая конструктор копирования и перегруженный оператор\
+присваивания, если это необходимо. И если позже в программе будет вызываться\
+удаленная функция, то компилятор выдаст ошибку.
+
+**Оператор присваивания** может быть перегружен для выполнения операций\
+присваивания с объектами вашего класса. Если вы не предоставите перегруженный\
+оператор присваивания сами, то компилятор создаст его за вас. Перегруженные\
+операторы присваивания всегда должны иметь проверку на самоприсваивание.
+
+По умолчанию оператор присваивания и конструктор копирования, предоставляемые\
+компилятором, выполняют почленную инициализацию/присваивание, что является\
+**поверхностным копированием**. Если в вашем классе есть динамически выделенные\
+члены, то это, скорее всего, приведет к проблемам (несколько объектов могут\
+указывать на одну и ту же выделенную память). В таком случае вам нужно будет\
+явно определить свой конструктор копирования и перегрузку оператора\
+присваивания для выполнения **глубокого копирования**.
+
+### Тест
+**Задание №1.**\
+Предположим, что `Square` — это класс, а `square` — это объект этого класса. Какой\
+способ перегрузки лучше использовать для следующих операторов?
+* `square + square`
+* `-square`
+* `std::cout << square`
+* `square = 7;`
+
+* Перегрузку бинарного оператора `+` лучше всего выполнять через\
+  обычную/дружественную функцию.
+* Перегрузку унарного оператора `-` лучше всего выполнять через метод\
+  класса.
+* Перегрузка оператора `<<` должна выполняться через\
+  обычную/дружественную функцию.
+* Перегрузка оператора `=` должна выполняться через метод класса.
+
+**Задание №2.**\
+Среднее арифметическое:
+```c++
+#include <iostream>
+#include <cstdint> // для целочисленных значений фиксированного размера
+
+class Average {
+private:
+    int32_t m_total = 0; // сумма всех полученных значений
+    int8_t m_numbers = 0; // количество всех полученных значений
+public:
+    Average() {}
+
+    friend std::ostream &operator<<(std::ostream &out, const Average &average) {
+        // Среднее_значение = сумма_всех_полученных_значений / количество_всех_полученных_значений.
+        // Следует помнить, что здесь должно выполняться деление типа с
+        // плавающей точкой (а не типа int)
+        out << static_cast<double>(average.m_total) / average.m_numbers;
+        return out;
+    }
+
+    // Поскольку operator+=() изменяет свой левый операнд, то перегрузку
+    // следует выполнять через метод класса
+    Average &operator+=(int num) {
+        // Увеличиваем сумму всех полученных значений новым значением
+        m_total += num;
+        // И добавляем единицу к общему количеству полученных чисел
+        ++m_numbers;
+        // Возвращаем текущий объект, чтобы иметь возможность выполнять цепочку
+        // операций с +=
+        return *this;
+    }
+};
+
+
+int main() {
+    Average avg;
+    avg += 5;
+    std::cout << avg << '\n'; // 5 / 1 = 5
+    avg += 9;
+    std::cout << avg << '\n'; // (5 + 9) / 2 = 7
+    avg += 19;
+    std::cout << avg << '\n'; // (5 + 9 + 19) / 3 = 11
+    avg += -9;
+    std::cout << avg << '\n'; // (5 + 9 + 19 - 9) / 4 = 6
+    (avg += 7) += 11; // выполнение цепочки операций
+    std::cout << avg << '\n'; // (5 + 9 + 19 - 9 + 7 + 11) / 6 = 7
+    Average copy = avg;
+    std::cout << copy << '\n'; // 7
+
+    return 0;
+}
+```
+
+*Требуется ли этому классу явный конструктор копирования или оператор\
+присваивания?*\
+Нет. Использование конструктора копирования и перегруженного оператора
+присваивания, предоставляемых компилятором по умолчанию, здесь будет
+достаточно.
+
+**Задание №3.**\
+Собственный класс-массив целых чисел `IntArray`:
+```c++
+#include <iostream>
+#include <cassert> // для стейтментов assert
+
+class IntArray {
+private:
+    int m_length = 0;
+    int *m_array = nullptr;
+public:
+    IntArray(int length) :
+            m_length(length) {
+        assert(length > 0 && "IntArray length should be a positive integer");
+        m_array = new int[m_length]{0};
+    }
+
+    // Конструктор копирования, который выполняет глубокое копирование
+    IntArray(const IntArray &array) :
+            m_length(array.m_length) {
+        // Выделяем новый массив
+        m_array = new int[m_length];
+        // Копируем элементы из исходного массива в наш только что выделенный массив
+        for (int count = 0; count < array.m_length; ++count)
+            m_array[count] = array.m_array[count];
+    }
+
+    ~IntArray() {
+        delete[] m_array;
+    }
+
+    // Функция перегрузки оператора <<
+    friend std::ostream &operator<<(std::ostream &out, const IntArray &array) {
+        for (int count = 0; count < array.m_length; ++count) {
+            out << array.m_array[count] << ' ';
+        }
+        return out;
+    }
+
+    int &operator[](const int index) {
+        assert(index >= 0);
+        assert(index < m_length);
+        return m_array[index];
+    }
+
+    // Перегрузка оператора присваивания с выполнением глубокого копирования
+    IntArray &operator=(const IntArray &array) {
+        // Проверка на самоприсваивание
+        if (this == &array)
+            return *this;
+        // Если массив уже существует, то удаляем его, дабы не произошла утечка памяти
+        delete[] m_array;
+        m_length = array.m_length;
+        // Выделяем новый массив
+        m_array = new int[m_length];
+        // Копируем элементы из исходного массива в наш только что выделенный массив
+        for (int count = 0; count < array.m_length; ++count)
+            m_array[count] = array.m_array[count];
+        return *this;
+    }
+};
+
+IntArray fillArray() {
+    IntArray a(6);
+    a[0] = 6;
+    a[1] = 7;
+    a[2] = 3;
+    a[3] = 4;
+    a[4] = 5;
+    a[5] = 8;
+    return a;
+}
+
+int main() {
+    IntArray a = fillArray();
+    std::cout << a << '\n'; // 6 7 3 4 5 8 
+    IntArray b(1);
+    a = a;
+    b = a;
+    std::cout << b << '\n'; // 6 7 3 4 5 8 
+    return 0;
+}
+```
+
+**Задание №4.**\
+Класс для реализации значений типа с фиксированной точкой с\
+двумя цифрами после точки.\
+**Лучшее решение**: Использовать тип int16_t signed для хранения целой части\
+значения и int8_t signed для хранения дробной части значения.
+```c++
+#include <iostream>
+#include <cstdint> // для целочисленных значений фиксированного размера
+#include <cmath> // для функции round()
+
+class FixedPoint {
+private:
+    std::int16_t m_base; // это целая часть нашего значения
+    std::int8_t m_decimal; // это дробная часть нашего значения
+public:
+    FixedPoint(std::int16_t base = 0, std::int8_t decimal = 0)
+            : m_base(base), m_decimal(decimal) {
+        // Здесь нужно обработать случай, когда дробная часть > 99 или < -99
+        // Если дробная или целая части значения отрицательные
+        if (m_base < 0.0 || m_decimal < 0.0) {
+            // Проверяем целую часть
+            if (m_base > 0.0)
+                m_base = -m_base;
+            // Проверяем дробную часть
+            if (m_decimal > 0.0)
+                m_decimal = -m_decimal;
+        }
+    }
+
+    FixedPoint(double d) {
+        // Сначала нам нужно получить целую часть значения.
+        // Мы можем сделать это, конвертируя наше число типа double в число типа int
+        m_base = static_cast<int16_t>(d); // отбрасывается дробная часть
+        // Теперь нам нужно получить дробную часть нашего значения:
+        // 1) d - m_base оставляет только дробную часть,
+        // 2) которую затем мы можем умножить на 100, переместив две цифры из дробной части в целую часть значения
+        // 3) теперь мы можем это дело округлить
+        // 4) и, наконец, конвертировать в тип int, чтобы отбросить любую дополнительную дробь
+        m_decimal = static_cast<std::int8_t>(round((d - m_base) * 100));
+    }
+
+    operator double() const {
+        return m_base + static_cast<double>(m_decimal) / 100;
+    }
+
+    friend bool operator==(const FixedPoint &fp1, const FixedPoint &fp2) {
+        return (fp1.m_base == fp2.m_base && fp1.m_decimal == fp2.m_decimal);
+    }
+
+    friend std::ostream &operator<<(std::ostream &out, const FixedPoint &fp) {
+        out << static_cast<double>(fp);
+        return out;
+    }
+
+    friend std::istream &operator>>(std::istream &in, FixedPoint &fp) {
+        double d;
+        in >> d;
+        fp = FixedPoint(d);
+        return in;
+    }
+
+    friend FixedPoint operator+(const FixedPoint &fp1, const FixedPoint &fp2) {
+        return {static_cast<double>(fp1) + static_cast<double>(fp2)};
+    }
+
+    FixedPoint operator-() {
+        return FixedPoint(-m_base, -m_decimal);
+    }
+};
+
+void SomeTest() {
+    std::cout << std::boolalpha;
+    std::cout << (FixedPoint(0.75) + FixedPoint(1.23) == FixedPoint(1.98)) // true
+              << '\n'; // оба значения положительные, никакого переполнения
+    std::cout << (FixedPoint(0.75) + FixedPoint(1.50) == FixedPoint(2.25)) // true
+              << '\n'; // оба значения положительные, переполнение
+    std::cout << (FixedPoint(-0.75) + FixedPoint(-1.23) == FixedPoint(-1.98)) // true
+              << '\n'; // оба значения отрицательные, никакого переполнения
+    std::cout << (FixedPoint(-0.75) + FixedPoint(-1.50) == FixedPoint(-2.25)) // true
+              << '\n'; // оба значения отрицательные, переполнение
+    std::cout << (FixedPoint(0.75) + FixedPoint(-1.23) == FixedPoint(-0.48)) // true
+              << '\n'; // второе значение отрицательное, никакого переполнения
+    std::cout << (FixedPoint(0.75) + FixedPoint(-1.50) == FixedPoint(-0.75)) // true
+              << '\n'; // второе значение отрицательное, возможно переполнение
+    std::cout << (FixedPoint(-0.75) + FixedPoint(1.23) == FixedPoint(0.48)) // true
+              << '\n'; // первое значение отрицательное, никакого переполнения
+    std::cout << (FixedPoint(-0.75) + FixedPoint(1.50) == FixedPoint(0.75)) // true
+              << '\n'; // первое значение отрицательное, возможно переполнение
+}
+
+int main() {
+    SomeTest();
+    FixedPoint a(-0.48);
+    std::cout << a << '\n'; // -0.48
+    std::cout << -a << '\n'; // 0.48
+    std::cout << "Enter a number: "; // 5.678
+    std::cin >> a; 
+    std::cout << "You entered: " << a << '\n'; // 5.68
+    return 0;
+}
+```
