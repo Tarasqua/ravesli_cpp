@@ -10,6 +10,7 @@
 7. [Урок №177. Виртуальный базовый класс](#урок-177-виртуальный-базовый-класс)
 8. [Урок №178. Обрезка объектов](#урок-178-обрезка-объектов)
 9. [Урок №179. Динамическое приведение типов. Оператор `dynamic_cast`](#урок-179-динамическое-приведение-типов-оператор-dynamiccast)
+10. [Урок №180. Вывод объектов классов через оператор вывода](#урок-180-вывод-объектов-классов-через-оператор-вывода)
 
 ## [Урок №170. Указатели, Ссылки и Наследование](#урок-170-указатели-ссылки-и-наследование)
 ```c++
@@ -1186,3 +1187,234 @@ int main() {
 > передача по значению.
 
 ## [Урок №179. Динамическое приведение типов. Оператор `dynamic_cast`](#урок-179-динамическое-приведение-типов-оператор-dynamiccast)
+### Зачем нужен `dynamic_cast`?
+```c++
+#include <iostream>
+#include <string>
+#include <utility>
+
+class Parent {
+protected:
+    int m_value;
+
+public:
+    Parent(int value) : m_value(value) {}
+
+    virtual ~Parent() {}
+};
+
+class Child : public Parent {
+protected:
+    std::string m_name;
+
+public:
+    Child(int value, std::string name) : Parent(value), m_name(std::move(name)) {}
+
+    const std::string &getName() { return m_name; }
+};
+
+Parent *getObject(bool bReturnChild) {
+    if (bReturnChild)
+        return new Child(1, "Banana");
+    else
+        return new Parent(2);
+}
+
+int main() {
+    Parent *p = getObject(true);
+    // Как мы выведем имя объекта класса Child здесь, имея лишь один указатель класса Parent?
+    delete p;
+
+    return 0;
+}
+```
+В этой программе метод `getObject()` всегда возвращает указатель класса `Parent`, но\
+этот указатель может указывать либо на объект класса `Parent`, либо на объект класса\
+`Child`. В случае, когда указатель указывает на объект класса `Child`, как мы будем\
+вызывать `Child::getName()`?
+
+### Оператор `dynamic_cast`
+Конвертация указателей родительского класса в указатели дочернего класса называется\
+**приведением к дочернему типу** (или **«понижающим приведением типа»**):
+```c++
+int main() {
+    Parent *p = getObject(true);
+    // используем dynamic_cast для конвертации указателя класса Parent в указатель класса Child
+    auto *ch = dynamic_cast<Child*>(p);
+    std::cout << ch->getName();
+    delete p;
+
+    return 0;
+}
+```
+
+### Невозможность конвертации через `dynamic_cast`
+Вышеприведенный пример работает только из-за того, что указатель `p` на самом\
+деле указывает на объект класса `Child`, поэтому конвертация успешна.\
+Если `dynamic_cast` не может выполнить конвертацию, то он возвращает нулевой\
+указатель.
+```c++
+int main() {
+    Parent *p = getObject(false);
+    // используем dynamic_cast для конвертации указателя класса Parent в указатель класса Child
+    auto *ch = dynamic_cast<Child*>(p);
+    if (ch) // выполняем проверку ch на нулевой указатель
+        std::cout << ch->getName();
+    delete p;
+
+    return 0;
+}
+```
+
+> <picture>
+>   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/light-theme/warning.svg">
+>   <img alt="Warning" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/warning.svg">
+> </picture><br>
+>
+> <b>Правило: Всегда делайте проверку результата динамического приведения на
+> нулевой указатель.</b>
+
+Также обратите внимание на **случаи, в которых понижающее приведение с\
+использованием оператора `dynamic_cast` не работает**:
+* Наследование типа `private` или типа `protected`.
+* Классы, которые не объявляют или не наследуют классы с какими-либо\
+  виртуальными функциями (и, следовательно, не имеют виртуальных таблиц).\
+  В примере, приведенном выше, если бы мы удалили виртуальный деструктор\
+  класса `Parent`, то преобразование через `dynamic_cast` не выполнилось бы.
+* Случаи, связанные с виртуальными базовыми классами\
+  (больше примеров на сайте [Microsoft](https://learn.microsoft.com/ru-ru/cpp/cpp/dynamic-cast-operator?view=msvc-170&viewFallbackFrom=vs-2019)).
+
+### Понижающее приведение и оператор `static_cast`
+Оказывается, понижающее приведение также может быть выполнено и через\
+оператор `static_cast`. Основное отличие заключается в том, что `static_cast` не\
+выполняет проверку во время запуска программы, чтобы убедиться в том, что вы\
+делаете то, что имеет смысл. Это позволяет оператору `static_cast` быть быстрее,\
+но опаснее оператора `dynamic_cast`.
+
+Если вы абсолютно уверены, что операция с понижающим приведением указателя\
+будет успешна, то использование `static_cast` является приемлемым. Один из\
+способов убедиться в этом — использовать виртуальную функцию:
+```c++
+#include <iostream>
+#include <string>
+#include <utility>
+
+// Идентификаторы классов
+enum ClassID {
+    PARENT,
+    CHILD
+    // Здесь можно добавить еще несколько классов
+};
+
+class Parent {
+protected:
+    int m_value;
+public:
+    Parent(int value) : m_value(value) {}
+
+    virtual ~Parent() {}
+
+    virtual ClassID getClassID() { return PARENT; }
+};
+
+class Child : public Parent {
+protected:
+    std::string m_name;
+public:
+    Child(int value, std::string name) : Parent(value), m_name(std::move(name)) {}
+
+    std::string &getName() { return m_name; }
+
+    ClassID getClassID() override { return CHILD; }
+
+};
+
+Parent *getObject(bool bReturnChild) {
+    if (bReturnChild)
+        return new Child(1, "Banana");
+    else
+        return new Parent(2);
+}
+
+int main() {
+    Parent *p = getObject(true);
+
+    if (p->getClassID() == CHILD) {
+        // Мы уже доказали, что p указывает на объект класса Child, поэтому никаких проблем здесь не должно быть
+        auto *ch = static_cast<Child *>(p);
+        std::cout << "The name of the Child is: " << ch->getName() << '\n';
+        // The name of the Child is: Banana
+    }
+
+    delete p;
+    return 0;
+}
+```
+
+### Оператор `dynamic_cast` и Ссылки
+```c++
+#include <iostream>
+#include <string>
+#include <utility>
+
+class Parent {
+protected:
+    int m_value;
+public:
+    Parent(int value) : m_value(value) {}
+
+    virtual ~Parent() {}
+};
+
+class Child : public Parent {
+protected:
+    std::string m_name;
+public:
+    Child(int value, std::string name) : Parent(value), m_name(std::move(name)) {}
+
+    const std::string &getName() { return m_name; }
+};
+
+int main() {
+    Child banana(1, "Banana");
+    Parent &p = banana;
+    auto &ch = dynamic_cast<Child &>(p); // используем оператор dynamic_cast для конвертации ссылки класса Parent в ссылку класса Child
+
+    std::cout << "The name of the Child is: " << ch.getName() << '\n'; // The name of the Child is: Banana
+
+    return 0;
+}
+```
+
+Поскольку в языке C++ не существует «нулевой ссылки», то `dynamic_cast` не может\
+возвратить «нулевую ссылку» при сбое. Вместо этого, `dynamic_cast` генерирует\
+исключение типа `std::bad_cast`.
+
+### Оператор `dynamic_cast` vs. Оператор `static_cast`
+
+> <picture>
+>   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/light-theme/warning.svg">
+>   <img alt="Warning" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/warning.svg">
+> </picture><br>
+>
+> <b>Правило: используйте оператор `dynamic_cast` при понижающем приведении,\
+> а во всех остальных случаях используйте оператор `static_cast`.</b>
+
+### Понижающее приведение vs. Виртуальные функции
+В общем, использование виртуальных функций **должно** быть предпочтительнее\
+использования понижающего приведения. Однако **в следующих случаях\
+понижающее приведение является лучшим вариантом**:
+* Если вы не можете изменить родительский класс, чтобы добавить в него свою\
+  виртуальную функцию (например, если родительский класс является частью\
+  Стандартной библиотеки С++). При этом, чтобы использовать понижающее\
+  приведение, в родительском классе должны уже присутствовать виртуальные\
+  функции.
+* Если вам нужен доступ к чему-либо, что есть только в дочернем классе\
+  (например, к функции доступа, которая существует только в дочернем\
+  классе).
+* Если добавление виртуальной функции в родительский класс не имеет\
+  смысла. В таком случае, в качестве альтернативы, если вам не нужно\
+  создавать объект родительского класса, вы можете использовать чистую\
+  виртуальную функцию.
+
+## [Урок №180. Вывод объектов классов через оператор вывода](#урок-180-вывод-объектов-классов-через-оператор-вывода)
