@@ -212,3 +212,119 @@ int main() {
 ```
 
 ## [Урок №171. Виртуальные функции и Полиморфизм](#урок-171-виртуальные-функции-и-полиморфизм)
+**Виртуальная функция в языке С++** — это особый тип функции, которая, при её\
+вызове, выполняет «наиболее» дочерний метод, который существует между\
+родительским и дочерними классами. Это свойство еще известно, как\
+**полиморфизм**. Дочерний метод вызывается тогда, когда совпадает сигнатура (имя,\
+типы параметров и является ли метод константным) и тип возврата дочернего\
+метода с сигнатурой и типом возврата метода родительского класса. Такие методы\
+называются **переопределениями** (или **"переопределенными методами"**).
+
+```c++
+#include <iostream>
+#include <string>
+#include <utility>
+
+class Parent {
+public:
+    virtual const char *getName() { return "Parent"; } // добавили ключевое слово virtual
+};
+
+class Child : public Parent {
+public:
+    virtual const char *getName() { return "Child"; }
+};
+
+int main() {
+    Child child;
+    Parent &rParent = child;
+    std::cout << "rParent is a " << rParent.getName(); // rParent is a Child
+
+    return 0;
+}
+```
+
+### Более сложный пример
+```c++
+#include <iostream>
+#include <string>
+#include <utility>
+
+class Animal {
+protected:
+    std::string m_name;
+
+    // Мы делаем этот конструктор protected так как не хотим, чтобы пользователи
+    // создавали объекты класса Animal напрямую,
+    // но хотим, чтобы у дочерних классов доступ был открыт
+    Animal(std::string name)
+            : m_name(std::move(name)) {
+    }
+
+public:
+    std::string getName() { return m_name; }
+
+    virtual const char *speak() { return "???"; }
+};
+
+class Cat : public Animal {
+public:
+    Cat(std::string name)
+            : Animal(std::move(name)) {
+    }
+
+    virtual const char *speak() { return "Meow"; }
+};
+
+class Dog : public Animal {
+public:
+    Dog(std::string name)
+            : Animal(std::move(name)) {
+    }
+
+    virtual char *speak() { return "Woof"; }
+};
+
+
+void report(Animal &animal) {
+    std::cout << animal.getName() << " says " << animal.speak() << '\n';
+}
+
+int main() {
+    Cat cat("Matros");
+    Dog dog("Barsik");
+
+    report(cat); // Matros says Meow
+    report(dog); // Barsik says Woof
+
+    return 0;
+}
+```
+
+При обработке `animal.speak()`, компилятор видит, что метод `Animal::speak()`\
+является виртуальной функцией. Когда animal ссылается на часть `Animal` объекта\
+`cat`, то компилятор просматривает все классы между `Animal` и `Cat`, чтобы найти\
+наиболее дочерний метод `speak()`. И находит `Cat::speak()`. В случае, когда\
+`animal` ссылается на часть `Animal` объекта `dog`, компилятор находит `Dog::speak()`.
+
+Также сработает:
+```c++
+Cat matros("Matros"), ivan("Ivan"), martun("Martun");
+Dog barsik("Barsik"), tolik("Tolik"), tyzik("Tyzik");
+
+// Создаем массив указателей на наши объекты Cat и Dog
+Animal *animals[] = { &matros, &barsik, &ivan, &tolik, &martun, &tyzik};
+for (auto const & animal : animals)
+    std::cout << animal->getName() << " says " << animal->speak() << '\n';
+```
+
+> <picture>
+>   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/light-theme/danger.svg">
+>   <img alt="Danger" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/danger.svg">
+> </picture><br>
+>
+> Сигнатура виртуального метода дочернего класса должна полностью\
+> соответствовать сигнатуре виртуального метода родительского класса.\
+> Если у дочернего метода будет другой тип параметров, нежели у\
+> родительского, то вызываться этот метод не будет.
+
