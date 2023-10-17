@@ -5,6 +5,8 @@
 3. [Урок №210. Длина и ёмкость `std::string`](#урок-210-длина-и-ёмкость-stdstring)
 4. [Урок №211. Доступ к символам `std::string`. Конвертация `std::string` в строки C-style](#урок-211-доступ-к-символам-stdstring-конвертация-stdstring-в-строки-c-style)
 5. [Урок №212. Присваивание и перестановка значений с `std::string`](#урок-212-присваивание-и-перестановка-значений-с-stdstring)
+6. [Урок №213. Добавление к `std::string`](#урок-213-добавление-к-stdstring)
+7. [Урок №214. Вставка символов и строк в `std::string`](#урок-214-вставка-символов-и-строк-в-stdstring)
 
 ## Урок №208. Строковые классы `std::string` и `std::wstring`
 ### Класс `std::string`
@@ -546,4 +548,437 @@ int main() {
 > Это самый простой и безопасный способ конвертации `std::string` в строки C-style.
 
 ## [Урок №212. Присваивание и перестановка значений с `std::string`](#урок-212-присваивание-и-перестановка-значений-с-stdstring)
+Самый простой способ присвоить `std::string` другое значение — использовать\
+перегруженный оператор присваивания `=`. Или, в качестве альтернативы, метод\
+`assign()`.
 
+#### `string& string::operator=(const string& str)` <br> `string& string::assign(const string& str)` <br> `string& string::operator=(const char* str)` <br> `string& string::assign(const char* str)` <br> `string& string::operator=(char c)`
+* Эти функции позволяют присваивать `std::string` значения разных типов.
+* Они возвращают скрытый указатель `*this`, что позволяет «связывать»\
+  объекты.
+* Обратите внимание, функции `assign()`, которая бы принимала один символ,\
+  нет.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    using namespace std;
+
+    string sString;
+
+    // Присваиваем std::string другую строку
+    sString = string("One");
+    cout << sString << endl; // One
+
+    const string sTwo("Two");
+    sString.assign(sTwo);
+    cout << sString << endl; // Two
+
+    // Присваиваем std::string строку C-style
+    sString = "Three";
+    cout << sString << endl; // Three
+
+    sString.assign("Four");
+    cout << sString << endl; // Four
+
+    // Присваиваем std::string значение типа char
+    sString = '5';
+    cout << sString << endl; // 5
+
+    // Связываем объекты
+    string sOther;
+    sString = sOther = "Six";
+    cout << sString << " " << sOther << endl; // Six Six
+
+    return 0;
+}
+```
+
+#### `string& string::assign(const string& str, size_type index, size_type len)`
+* Эта функция присваивает `std::string` подстроку `str` длиной `len`, начиная с\
+  `index`-а.
+* Генерирует исключение `out_of_range`, если `index` недопустим.
+* Возвращает скрытый указатель `*this`, что позволяет «связывать» объекты.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    const std::string sSomething("abcdefgh");
+    std::string sDest;
+
+    // присваиваем sDest подстроку sSomething длиной 5, начиная с индекса 3
+    sDest.assign(sSomething, 3, 5);
+    std::cout << sDest << std::endl; // defgh
+
+    return 0;
+}
+```
+
+#### `string& string::assign(const char* chars, size_type len)`
+* Эта функция присваивает `std::string` строку C-style длиной `len`.
+* Генерирует исключение `length_error`, если результат превышает\
+  максимальное количество символов.
+* Возвращает скрытый указатель `*this`, что позволяет «связывать» объекты.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sDest;
+
+    sDest.assign("abcdefgh", 5);
+    std::cout << sDest << std::endl; // abcde
+
+    return 0;
+}
+```
+
+#### `string& string::assign(size_type len, char c)`
+* Эта функция присваивает `std::string` определенное количество вхождений\
+  символа `c`. Количество вхождений указывается в `len`.
+* Генерирует исключение `length_error`, если результат превышает\
+  максимальное количество символов.
+* Возвращает скрытый указатель `*this`, что позволяет «связывать» объекты.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sDest;
+
+    sDest.assign(5, 'h');
+    std::cout << sDest << std::endl; // hhhhh
+
+    return 0;
+}
+```
+
+### Перестановка значений двух строк
+Если у вас есть две строки, значения которых вы хотите поменять местами,\
+используйте функцию `swap()`.
+
+#### `void string::swap(string &str)` <br> `void swap(string &str1, string &str2)`
+* Обе функции меняют местами значения двух строк. Первый вариант функции\
+  `swap()` меняет местами значения `*this` и `str`, а второй — `str1` и `str2`.
+* Используйте данные функции вместо операции присваивания, если нужно\
+  поменять местами значения двух строк.
+
+```c++
+#include <iostream>
+#include <string>
+
+using namespace std;
+
+int main() {
+    string sStr1("green");
+    string sStr2("white");
+
+    cout << sStr1 << " " << sStr2 << endl; // green white
+    swap(sStr1, sStr2);
+    cout << sStr1 << " " << sStr2 << endl; // white green
+    sStr1.swap(sStr2);
+    cout << sStr1 << " " << sStr2 << endl; // green white
+
+    return 0;
+}
+```
+
+## [Урок №213. Добавление к `std::string`](#урок-213-добавление-к-stdstring)
+Чтобы добавить одну строку к другой строке, можно использовать перегруженный\
+оператор `+=`, функцию `append()` или функцию `push_back()`.
+
+#### `string& string::operator+=(const string& str)` <br> `string& string::append(const string& str)`
+* Обе функции добавляют к `std::string` строку `str`.
+* Возвращают скрытый указатель `*this`, что позволяет «связывать» объекты.
+* Генерируют исключение `length_error`, если результат превышает\
+  максимально допустимое количество символов.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sString("one");
+
+    sString += std::string(" two");
+
+    std::string sThree(" three");
+    sString.append(sThree);
+
+    std::cout << sString << std::endl; // one two three
+}
+```
+
+Существует также разновидность функции `append()`, которая может добавлять
+подстроку.
+#### `string& string::append(const string& str, size_type index, size_type num)`
+* Эта функция добавляет к `std::string` строку `str` с количеством символов,\
+  которые указываются в `num`, начиная с `index`-а.
+* Возвращает скрытый указатель `*this`, что позволяет «связывать» объекты.
+* Генерирует исключение `out_of_range`, если index некорректен.
+* Генерирует исключение `length_error`, если результат превышает максимально
+  допустимое количество символов.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sString("one ");
+    const std::string sTemp("twothreefour");
+    // добавляем к std::string подстроку sTemp длиной 4, начиная с символа под индексом 8
+    sString.append(sTemp, 8, 4);
+    std::cout << sString << std::endl; // one four
+}
+```
+
+Оператор `+=` и функция `append()` также имеют версии, которые работают со\
+строками C-style.
+#### `string& string::operator+=(const char* str)` <br> `string& string::append(const char* str)`
+* Обе функции добавляют к `std::string` строку C-style `str`.
+* Возвращают скрытый указатель `*this`, что позволяет «связывать» объекты.
+* Генерируют исключение `length_error`, если результат превышает\
+  максимально допустимое количество символов.
+* `str` не должен быть `NULL`.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sString("one");
+
+    sString += " two";
+    sString.append(" three");
+    std::cout << sString << std::endl; // one two three
+}
+```
+
+И есть еще одна разновидность функции `append()`, которая работает со строками\
+C-style.
+#### `string& string::append(const char* str, size_type len)`
+* Добавляет к `std::string` количество символов (которые указаны в `len`) строки\
+  C-style `str`.
+* Возвращает скрытый указатель `*this`, что позволяет «связывать» объекты.
+* Генерирует исключение `length_error`, если результат превышает максимально\
+  допустимое количество символов.
+* Игнорирует специальные символы (включая `"`).
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sString("two ");
+
+    sString.append("fivesix", 4);
+    std::cout << sString << std::endl; // two five
+}
+```
+
+Существуют также функции, которые добавляют отдельные (единичные) символы.
+#### `string& string::operator+=(char c)` <br> `void string::push_back(char c)`
+* Обе функции добавляют к `std::string` символ `c`.
+* Оператор `+=` возвращает скрытый указатель `*this`, что позволяет «связывать»\
+  объекты.
+* Обе функции генерируют исключение `length_error`, если результат превышает\
+  максимально допустимое количество символов.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sString("two");
+
+    sString += ' ';
+    sString.push_back('3');
+    std::cout << sString << std::endl; // two 3
+}
+```
+
+#### `string& string::append(size_type num, char c)`
+* Эта функция добавляет к `std::string` количество вхождений (которые\
+  указываются в num) символа `c`.
+* Возвращает скрытый указатель `*this`, что позволяет «связывать» объекты.
+* Генерирует исключение `length_error`, если результат превышает максимально\
+  допустимое количество символов.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sString("eee");
+
+    sString.append(5, 'f'); 
+    std::cout << sString << std::endl; // eeefffff
+}
+```
+
+#### `string& string::append(InputIterator start, InputIterator end)`
+* Эта функция добавляет к `std::string` все символы из диапазона (`start`, `end`).
+* Возвращает скрытый указатель `*this`, что позволяет «связывать» объекты.
+* Генерирует исключение `length_error`, если результат превышает максимально\
+  допустимое количество символов.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string first_name("Kirill");
+    std::string patronymic_last_name{"Victorovich Tarasov"};
+
+    first_name.append(patronymic_last_name.begin() + 11, patronymic_last_name.end());
+    std::cout << first_name; // Kirill Tarasov
+    return 0;
+}
+```
+
+## [Урок №214. Вставка символов и строк в `std::string`](#урок-214-вставка-символов-и-строк-в-stdstring)
+Вставлять символы/строки в `std::string` можно с помощью функции `insert()`.
+#### `string& string::insert(size_type index, const string& str)` <br> `string& string::insert(size_type index, const char* str)`
+* Обе функции вставляют символы/строки, начиная с определенного\
+  `index` `std::string`.
+* Возвращают скрытый указатель `*this`, что позволяет «связывать» объекты.
+* Генерируют исключение `out_of_range`, если `index` некорректен.
+* Генерируют исключение `length_error`, если результат превышает\
+  максимально допустимое количество символов.
+* Во второй версии функции `insert()` `str` не должен быть `NULL`.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sString("bbb");
+    std::cout << sString << std::endl; // bbb
+
+    sString.insert(2, std::string("mmm"));
+    std::cout << sString << std::endl; // bbmmmb
+
+    sString.insert(5, "aaa");
+    std::cout << sString << std::endl; // bbmmmaaab
+}
+```
+
+А вот версия функции `insert()`, которая позволяет вставить с определенного\
+`index` `std::string` подстроку.
+#### `string& string::insert(size_type index, const string& str, size_type startindex, size_type num)`
+* Эта функция вставляет с определенного `index` `std::string` указанное\
+  количество символов (`num`) строки `str`, начиная со `startindex`-а.
+* Возвращает скрытый указатель `*this`, что позволяет «связывать» объекты.
+* Генерирует исключение `out_of_range`, если `index` или `startindex`\
+  некорректны.
+* Генерирует исключение `length_error`, если результат превышает максимально\
+  допустимое количество символов.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sString("bbb");
+
+    const std::string sInsert("012345");
+    // вставляем подстроку sInsert длиной 4, начиная с символа под индексом 2,
+    // в строку sString, начиная с индекса 1
+    sString.insert(1, sInsert, 2, 4);
+    std::cout << sString << std::endl; // b2345bb
+}
+```
+
+А вот версия функции `insert()`, с помощью которой в `std::string` можно вставить часть\
+строки C-style.
+#### `string& string::insert(size_type index, const char* str, size_type len)`
+* Эта функция вставляет с определенного `index` `std::string` указанное\
+  количество символов (`len`) строки C-style `str`.
+* Возвращает скрытый указатель `*this`, что позволяет «связывать» объекты.
+* Генерирует исключение `out_of_range`, если `index` некорректен.
+* Генерирует исключение `length_error`, если результат превышает максимально\
+  допустимое количество символов.
+* Игнорирует специальные символы (такие как `"`).
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sString("bbb");
+
+    sString.insert(2, "acdef", 4); 
+    std::cout << sString << std::endl; // bbacdeb
+}
+```
+
+А вот версия функции `insert()`, которая вставляет в `std::string` один и тот же символ\
+несколько раз.
+#### `string& string::insert(size_type index, size_type num, char c)`
+* Эта функция вставляет с определенного `index` `std::string` указанное\
+  количество вхождений (`num`) символа `c`.
+* Возвращает скрытый указатель `*this`, что позволяет «связывать» объекты.
+* Генерирует исключение `out_of_range`, если `index` некорректен.
+* Генерирует исключение `length_error`, если результат превышает максимально\
+  допустимое количество символов.
+
+```c++
+#include <iostream>
+#include <string>
+
+int main() {
+    std::string sString("bbb");
+
+    sString.insert(2, 3, 'a');
+    std::cout << sString << std::endl; // bbaaab
+}
+```
+
+И, наконец, функция `insert()` имеет три разные версии, которые работают с\
+итераторами.
+#### `void insert(iterator it, size_type num, char c)` <br> `iterator string::insert(iterator it, char c)` <br> `void string::insert(iterator it, InputIterator begin, InputIterator end)`
+* Первая версия функции вставляет в `std::string` указанное количество\
+  вхождений (`num`) символа `c` перед итератором `it`.
+* Вторая версия функции вставляет в `std::string` одиночный символ c перед\
+  итератором `it` и возвращает итератор в позицию вставленного символа.
+* Третья версия функции вставляет в `std::string` все символы диапазона\
+  (`begin`, `end`) перед итератором `it`.
+* Все функции генерируют исключение `length_error`, если результат превышает\
+  максимально допустимое количество символов.
+
+```c++
+#include <iostream>
+#include <iterator>
+
+int main() {
+    std::string sString("eeettttrrrruuuu");
+    // void insert(iterator it, size_type num, char c);
+    sString.insert(sString.cbegin() + 3, 4, 'Y');
+    // вставляет в std::string указанное количество вхождений (num) символа c перед итератором it.
+    std::cout << sString << '\n'; // eeeYYYYttttrrrruuuu
+
+    // iterator string::insert(iterator it, char c);
+    auto iterator = sString.cbegin() + 3;
+    // вставляет в std::string одиночный символ c
+    std::cout << *iterator << '\n'; // Y
+    // перед итератором it и возвращает итератор в позицию вставленного символа
+    iterator = sString.insert(iterator, 'H');
+    std::cout << *iterator << '\n'; // H
+    std::cout << sString << '\n'; // eeeHYYYYttttrrrruuuu
+
+    std::string sNew("privet");
+    std::cout << sNew << '\n'; // privet
+    // void string::insert(iterator it, InputIterator begin, InputIterator end);
+    sNew.insert(sNew.begin() + 2, sString.cbegin() + 3, sString.cbegin() + 7);
+    // вставляет в std::string все символы диапазона [begin, end) перед итератором it
+    std::cout << sNew << '\n'; // prHYYYivet
+
+    return 0;
+}
+```
